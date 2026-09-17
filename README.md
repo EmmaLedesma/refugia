@@ -8,7 +8,9 @@ Plataforma de gestión operativa para organizaciones rescatistas de animales en 
 
 MVP en desarrollo. Alcance: **un solo refugio** (sin multi-tenant), foco en gestión de animales + adopción responsable.
 
-API: scaffolding inicial en `api/` (Node/Express + Sequelize sobre Azure SQL). Implementado hasta ahora: modelos completos del dominio, endpoints de `animales` (RF1, RF3, RF4, RF9) y servicio de scoring de matching (RF6, versión por reglas). Pendiente: endpoints de adoptantes/postulaciones, autenticación funcional end-to-end, despliegue en Azure.
+API: scaffolding inicial en `api/` (Node/Express + Sequelize sobre Azure SQL). Implementado hasta ahora: modelos completos del dominio, endpoints de `animales` (RF1, RF3, RF4, RF9) y servicio de scoring de matching (RF6, versión por reglas). Pendiente: endpoints de adoptantes/postulaciones, autenticación funcional end-to-end.
+
+Infraestructura: definida como código en `infra/terraform/` (Resource Group, App Service, Azure SQL, Blob Storage, Key Vault, Application Insights). Pendiente: primer `terraform apply` real y despliegue de la API.
 
 ### Correr la API localmente
 ```bash
@@ -60,7 +62,8 @@ Detalle completo en [docs/architecture.md](docs/architecture.md) (pendiente de c
 
 - [Requisitos funcionales y no funcionales](docs/requirements.md)
 - [Modelo de datos](docs/data-model.md)
-- [ADRs](docs/adr/) — incluye [ADR-0001 hosting](docs/adr/0001-hosting-api.md), [ADR-0002 auth](docs/adr/0002-auth.md), [ADR-0003 modelo de eventos clínicos y ORM](docs/adr/0003-modelo-eventos-clinicos-orm.md)
+- [Infraestructura (Terraform)](docs/infrastructure.md)
+- [ADRs](docs/adr/) — incluye [ADR-0001 hosting](docs/adr/0001-hosting-api.md), [ADR-0002 auth](docs/adr/0002-auth.md), [ADR-0003 modelo de eventos clínicos y ORM](docs/adr/0003-modelo-eventos-clinicos-orm.md), [ADR-0004 tiers de costo](docs/adr/0004-costos-infraestructura.md)
 - [Roadmap / fuera de alcance](docs/roadmap.md)
 
 ## Disclaimer de portfolio

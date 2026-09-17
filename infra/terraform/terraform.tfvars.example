@@ -1,0 +1,6 @@
+project_name        = "refugia"
+environment         = "dev"
+location            = "brazilsouth"
+sql_admin_login     = "refugia_admin"
+sql_admin_password  = "changeme-use-a-strong-password"
+app_service_sku     = "B1"
