@@ -8,6 +8,16 @@ Plataforma de gestión operativa para organizaciones rescatistas de animales en 
 
 MVP en desarrollo. Alcance: **un solo refugio** (sin multi-tenant), foco en gestión de animales + adopción responsable.
 
+API: scaffolding inicial en `api/` (Node/Express + Sequelize sobre Azure SQL). Implementado hasta ahora: modelos completos del dominio, endpoints de `animales` (RF1, RF3, RF4, RF9) y servicio de scoring de matching (RF6, versión por reglas). Pendiente: endpoints de adoptantes/postulaciones, autenticación funcional end-to-end, despliegue en Azure.
+
+### Correr la API localmente
+```bash
+cd api
+cp .env.example .env   # completar credenciales de Azure SQL y JWT_SECRET
+npm install
+npm run dev
+```
+
 ## Problema
 
 Las organizaciones rescatistas en CABA gestionan animales, historias clínicas, tránsitos y donaciones mediante WhatsApp y planillas. La Ley 6856 (CABA) exige una plataforma de bienestar animal; la respuesta estatal ("Animales BA") cubre al ciudadano pero no da herramientas de operación a los refugios.
@@ -50,9 +60,9 @@ Detalle completo en [docs/architecture.md](docs/architecture.md) (pendiente de c
 
 - [Requisitos funcionales y no funcionales](docs/requirements.md)
 - [Modelo de datos](docs/data-model.md)
-- [ADRs](docs/adr/)
+- [ADRs](docs/adr/) — incluye [ADR-0001 hosting](docs/adr/0001-hosting-api.md), [ADR-0002 auth](docs/adr/0002-auth.md), [ADR-0003 modelo de eventos clínicos y ORM](docs/adr/0003-modelo-eventos-clinicos-orm.md)
 - [Roadmap / fuera de alcance](docs/roadmap.md)
 
 ## Disclaimer de portfolio
 
-Este proyecto es una demo técnica y académica. No representa disponibilidad de nivel productivo ni fue validado con un refugio real en producción — foco razonamiento de Solution Architecture sobre un problema de negocio concreto.
+Este proyecto es una demo técnica y académica. No representa disponibilidad de nivel productivo ni fue validado con un refugio real en producción — el foco es mostrar razonamiento de Solution Architecture sobre un problema de negocio concreto.
