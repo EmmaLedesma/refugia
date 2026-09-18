@@ -1,21 +1,21 @@
-# Infraestructura — Refugia MVP (Azure)
+# Infraestructura — Refugia MVP (AWS)
 
-Provisionada íntegramente con Terraform (`infra/terraform/`). Ver [ADR-0004](adr/0004-costos-infraestructura.md) para la justificación de tiers.
+Provisionada íntegramente con Terraform (`infra/terraform/`), región **sa-east-1 (São Paulo)**. Ver [ADR-0005](adr/0005-migracion-azure-a-aws.md) para el contexto de la migración desde Azure.
 
 ## Recursos
 
-| Recurso | Azure Service | Propósito |
+| Recurso | AWS Service | Propósito |
 |---|---|---|
-| Resource Group | `azurerm_resource_group` | Agrupa todo el proyecto |
-| API | `azurerm_linux_web_app` (App Service, Linux, Node 20) | Hosting de la API — ver [ADR-0001](adr/0001-hosting-api.md) |
-| Base de datos | `azurerm_mssql_server` + `azurerm_mssql_database` (tier Basic) | Modelo relacional — ver [docs/data-model.md](data-model.md) |
-| Fotos | `azurerm_storage_account` + `azurerm_storage_container` | Galería de fotos de animales (RF10) |
-| Secretos | `azurerm_key_vault` | Credenciales de DB, JWT secret, connection string de Storage |
-| Observabilidad | `azurerm_application_insights` | Logs y métricas — RNF3 |
+| API | Elastic Beanstalk (instancia única, Node.js 20) | Hosting de la API |
+| Base de datos | RDS PostgreSQL (db.t3.micro) | Modelo relacional — ver [docs/data-model.md](data-model.md) |
+| Fotos | S3 | Galería de fotos de animales (RF10), lectura pública vía bucket policy |
+| Secretos | SSM Parameter Store (SecureString) | `db_password`, `jwt_secret` |
+| Observabilidad | CloudWatch (Logs + Metrics) | Integración nativa con Elastic Beanstalk — RNF3 |
+| IAM | Instance Profile dedicado | Acceso mínimo necesario: leer parámetros propios en SSM, leer/escribir en el bucket S3 |
 
 ## Cómo se conectan los secretos
 
-La API usa **Managed Identity** (`SystemAssigned`) del App Service para leer del Key Vault — no hay credenciales embebidas en `app_settings` ni en el código. Los valores no sensibles (host de DB, nombre de contenedor) sí van directo en `app_settings` porque no son secretos.
+Las instancias de Elastic Beanstalk tienen un rol IAM con permiso de lectura **solo** sobre los parámetros bajo `/refugia-<env>/*` en SSM. `src/config/secrets.js` los lee en el arranque del server (solo en `NODE_ENV=production`) y los inyecta en `process.env`. En desarrollo local se usa `.env` directamente.
 
 ## Cómo desplegar
 
@@ -29,6 +29,10 @@ terraform apply
 
 `terraform.tfvars` está en `.gitignore` — nunca se commitea con credenciales reales.
 
+## Riesgo de seguridad conocido (MVP)
+
+RDS está configurado con `publicly_accessible = true` y el security group permite el puerto 5432 desde cualquier IP dentro de la VPC por defecto — una simplificación deliberada para el MVP, documentada en el ADR-0005. Antes de una demo pública prolongada, conviene restringir el security group de RDS para aceptar tráfico únicamente desde el security group de Elastic Beanstalk.
+
 ## Costos (estimado, no verificado con calculadora oficial)
 
-Diseñado para mantenerse en tiers bajos: App Service Plan B1, Azure SQL Basic, Storage LRS. Esto es una estimación de diseño, no una cotización — antes de dejarlo corriendo períodos largos, correr la [Azure Pricing Calculator](https://azure.microsoft.com/pricing/calculator/) con la región y tiers reales.
+Diseñado para el free tier de AWS: EC2 t3.micro (Beanstalk, instancia única, sin load balancer), RDS db.t3.micro, S3 con uso bajo, SSM Parameter Store (gratuito para SecureString estándar). Esto es una estimación de diseño, no una cotización — correr la [AWS Pricing Calculator](https://calculator.aws/) antes de dejarlo corriendo por períodos largos.

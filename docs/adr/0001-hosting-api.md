@@ -1,6 +1,6 @@
 # ADR-0001: Hosting de la API en Azure App Service
 
-**Estado:** Aceptada
+**Estado:** Reemplazada por [ADR-0005](0005-migracion-azure-a-aws.md) — se migró a AWS Elastic Beanstalk. Se conserva como registro histórico; el razonamiento de fondo (PaaS sobre serverless) se mantiene, solo cambió el proveedor.
 
 ## Contexto
 Refugia necesita una API REST para el MVP (gestión de animales + adopción). El proyecto es una demo de portfolio/académica, con recursos limitados y probable exposición en entrevistas técnicas en vivo.

@@ -23,8 +23,9 @@ infra/terraform/*.tfvars
 crash.log
 crash.*.log
 
-# --- Azure ---
-.azure/
+# --- AWS ---
+.aws-sam/
+*.pem
 
 # --- Editor / SO ---
 .vscode/

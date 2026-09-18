@@ -2,112 +2,223 @@ locals {
   name_prefix = "${var.project_name}-${var.environment}"
 }
 
-# --- Resource Group ---
-resource "azurerm_resource_group" "main" {
-  name     = "${local.name_prefix}-rg"
-  location = var.location
+# --- VPC por defecto (simplifica el MVP; ver riesgo de seguridad en ADR-0005) ---
+data "aws_vpc" "default" {
+  default = true
 }
 
-# --- Azure SQL (server + database) ---
-resource "azurerm_mssql_server" "main" {
-  name                         = "${local.name_prefix}-sql"
-  resource_group_name          = azurerm_resource_group.main.name
-  location                     = azurerm_resource_group.main.location
-  version                      = "12.0"
-  administrator_login          = var.sql_admin_login
-  administrator_login_password = var.sql_admin_password
-  minimum_tls_version          = "1.2"
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
 }
 
-resource "azurerm_mssql_database" "main" {
-  name         = var.project_name
-  server_id    = azurerm_mssql_server.main.id
-  sku_name     = "Basic" # suficiente para MVP/portfolio, bajo costo
-  max_size_gb  = 2
+# --- S3 (fotos de animales) ---
+resource "aws_s3_bucket" "fotos" {
+  bucket = "${local.name_prefix}-fotos-animales"
 }
 
-# Permite acceso desde servicios de Azure (App Service) a la base
-resource "azurerm_mssql_firewall_rule" "allow_azure_services" {
-  name             = "AllowAzureServices"
-  server_id        = azurerm_mssql_server.main.id
-  start_ip_address = "0.0.0.0"
-  end_ip_address   = "0.0.0.0"
+resource "aws_s3_bucket_public_access_block" "fotos" {
+  bucket                  = aws_s3_bucket.fotos.id
+  block_public_acls       = true
+  block_public_policy     = false # necesitamos una policy acotada de lectura pública
+  ignore_public_acls      = true
+  restrict_public_buckets = false
 }
 
-# --- Storage (fotos de animales) ---
-resource "azurerm_storage_account" "main" {
-  name                     = replace("${local.name_prefix}sa", "-", "") # sin guiones, límite de Azure
-  resource_group_name      = azurerm_resource_group.main.name
-  location                 = azurerm_resource_group.main.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS" # menor costo; suficiente para MVP/portfolio
+# Lectura pública solo de los objetos (no de la configuración del bucket)
+resource "aws_s3_bucket_policy" "fotos_lectura_publica" {
+  bucket = aws_s3_bucket.fotos.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "PublicReadGetObject"
+      Effect    = "Allow"
+      Principal = "*"
+      Action    = "s3:GetObject"
+      Resource  = "${aws_s3_bucket.fotos.arn}/*"
+    }]
+  })
+  depends_on = [aws_s3_bucket_public_access_block.fotos]
 }
 
-resource "azurerm_storage_container" "fotos" {
-  name                  = "fotos-animales"
-  storage_account_name  = azurerm_storage_account.main.name
-  container_access_type = "blob" # lectura pública de fotos, sin exponer el resto de la cuenta
-}
+# --- Security Groups ---
+resource "aws_security_group" "rds" {
+  name        = "${local.name_prefix}-rds-sg"
+  description = "Permite acceso a PostgreSQL desde Elastic Beanstalk y, temporalmente, para administración"
+  vpc_id      = data.aws_vpc.default.id
 
-# --- Key Vault (secrets) ---
-data "azurerm_client_config" "current" {}
-
-resource "azurerm_key_vault" "main" {
-  name                = "${local.name_prefix}-kv"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  tenant_id           = data.azurerm_client_config.current.tenant_id
-  sku_name            = "standard"
-}
-
-resource "azurerm_key_vault_access_policy" "app_service" {
-  key_vault_id = azurerm_key_vault.main.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = azurerm_linux_web_app.api.identity[0].principal_id
-
-  secret_permissions = ["Get", "List"]
-}
-
-# --- Application Insights (observabilidad) ---
-resource "azurerm_application_insights" "main" {
-  name                = "${local.name_prefix}-appinsights"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  application_type    = "Node.JS"
-}
-
-# --- App Service (API) — ver docs/adr/0001-hosting-api.md ---
-resource "azurerm_service_plan" "main" {
-  name                = "${local.name_prefix}-plan"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  os_type             = "Linux"
-  sku_name            = var.app_service_sku
-}
-
-resource "azurerm_linux_web_app" "api" {
-  name                = "${local.name_prefix}-api"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  service_plan_id     = azurerm_service_plan.main.id
-
-  identity {
-    type = "SystemAssigned" # permite acceder a Key Vault sin credenciales embebidas
+  ingress {
+    description = "PostgreSQL"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    # MVP: abierto a nivel de VPC por defecto. Ver riesgo señalado en ADR-0005 —
+    # restringir al security group de Beanstalk antes de una demo pública prolongada.
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  site_config {
-    application_stack {
-      node_version = "20-lts"
-    }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# --- RDS PostgreSQL ---
+resource "aws_db_subnet_group" "main" {
+  name       = "${local.name_prefix}-db-subnet-group"
+  subnet_ids = data.aws_subnets.default.ids
+}
+
+resource "aws_db_instance" "main" {
+  identifier             = "${local.name_prefix}-db"
+  engine                 = "postgres"
+  engine_version         = "16"
+  instance_class         = var.db_instance_class
+  allocated_storage      = 20 # dentro del free tier
+  db_name                = var.project_name
+  username                = var.db_username
+  password                = var.db_password
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  vpc_security_group_ids = [aws_security_group.rds.id]
+  publicly_accessible    = true # MVP — ver riesgo en ADR-0005
+  skip_final_snapshot    = true
+  multi_az                = false # bajo costo, sin alta disponibilidad (aceptado en RNF2)
+}
+
+# --- SSM Parameter Store (secretos) ---
+resource "aws_ssm_parameter" "db_password" {
+  name  = "/${local.name_prefix}/db_password"
+  type  = "SecureString"
+  value = var.db_password
+}
+
+resource "aws_ssm_parameter" "jwt_secret" {
+  name  = "/${local.name_prefix}/jwt_secret"
+  type  = "SecureString"
+  value = "changeme-generar-un-secreto-fuerte" # reemplazar manualmente tras el primer apply
+}
+
+# --- IAM Role para las instancias de Elastic Beanstalk ---
+resource "aws_iam_role" "eb_instance_role" {
+  name = "${local.name_prefix}-eb-instance-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eb_web_tier" {
+  role       = aws_iam_role.eb_instance_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkWebTier"
+}
+
+resource "aws_iam_role_policy" "eb_ssm_read" {
+  name = "${local.name_prefix}-eb-ssm-read"
+  role = aws_iam_role.eb_instance_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["ssm:GetParameter", "ssm:GetParameters"]
+      Resource = "arn:aws:ssm:${var.aws_region}:*:parameter/${local.name_prefix}/*"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "eb_s3_access" {
+  name = "${local.name_prefix}-eb-s3-access"
+  role = aws_iam_role.eb_instance_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["s3:PutObject", "s3:GetObject", "s3:ListBucket"]
+      Resource = [aws_s3_bucket.fotos.arn, "${aws_s3_bucket.fotos.arn}/*"]
+    }]
+  })
+}
+
+resource "aws_iam_instance_profile" "eb" {
+  name = "${local.name_prefix}-eb-instance-profile"
+  role = aws_iam_role.eb_instance_role.name
+}
+
+# --- Elastic Beanstalk (API) — ver docs/adr/0005-migracion-azure-a-aws.md ---
+resource "aws_elastic_beanstalk_application" "api" {
+  name        = local.name_prefix
+  description = "Refugia API — MVP"
+}
+
+resource "aws_elastic_beanstalk_environment" "api" {
+  name                = "${local.name_prefix}-env"
+  application         = aws_elastic_beanstalk_application.api.name
+  solution_stack_name = "64bit Amazon Linux 2023 v6.4.3 running Node.js 20" # verificar versión vigente antes de aplicar
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "InstanceType"
+    value     = var.instance_type
   }
 
-  app_settings = {
-    "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.main.connection_string
-    "DB_HOST"                               = azurerm_mssql_server.main.fully_qualified_domain_name
-    "DB_NAME"                               = azurerm_mssql_database.main.name
-    "AZURE_STORAGE_CONTAINER"               = azurerm_storage_container.fotos.name
-    "NODE_ENV"                              = "production"
-    # DB_USER, DB_PASSWORD, JWT_SECRET, AZURE_STORAGE_CONNECTION_STRING:
-    # se configuran como secretos en Key Vault, no en texto plano aquí.
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "IamInstanceProfile"
+    value     = aws_iam_instance_profile.eb.name
   }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:environment"
+    name      = "EnvironmentType"
+    value     = "SingleInstance" # sin load balancer — bajo costo, ver ADR-0005
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_HOST"
+    value     = aws_db_instance.main.address
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_NAME"
+    value     = aws_db_instance.main.db_name
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "DB_USER"
+    value     = var.db_username
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AWS_S3_BUCKET"
+    value     = aws_s3_bucket.fotos.bucket
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "AWS_REGION"
+    value     = var.aws_region
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "NODE_ENV"
+    value     = "production"
+  }
+
+  # DB_PASSWORD y JWT_SECRET se leen desde SSM Parameter Store en runtime
+  # (server.js los busca vía AWS SDK), no se exponen acá en texto plano.
 }

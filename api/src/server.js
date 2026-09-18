@@ -1,16 +1,19 @@
 require('dotenv').config();
-const app = require('./app');
-const { sequelize } = require('./models');
+const { cargarSecretos } = require('./config/secrets');
 
 const PORT = process.env.PORT || 3000;
 
 async function iniciar() {
   try {
+    // Antes de requerir app/models: en producción completa DB_PASSWORD y JWT_SECRET desde SSM
+    await cargarSecretos();
+
+    const app = require('./app');
+    const { sequelize } = require('./models');
+
     await sequelize.authenticate();
     console.log('Conexión a la base de datos establecida.');
 
-    // Solo para desarrollo: sincroniza el esquema sin migraciones formales.
-    // Antes de producción/demo estable, reemplazar por migraciones versionadas.
     if (process.env.NODE_ENV === 'development') {
       await sequelize.sync({ alter: true });
       console.log('Modelos sincronizados con la base de datos.');

@@ -8,9 +8,9 @@ Plataforma de gestión operativa para organizaciones rescatistas de animales en 
 
 MVP en desarrollo. Alcance: **un solo refugio** (sin multi-tenant), foco en gestión de animales + adopción responsable.
 
-API: scaffolding inicial en `api/` (Node/Express + Sequelize sobre Azure SQL). Implementado hasta ahora: modelos completos del dominio, endpoints de `animales` (RF1, RF3, RF4, RF9) y servicio de scoring de matching (RF6, versión por reglas). Pendiente: endpoints de adoptantes/postulaciones, autenticación funcional end-to-end.
+API: scaffolding inicial en `api/` (Node/Express + Sequelize sobre AWS RDS PostgreSQL). Implementado hasta ahora: modelos completos del dominio, endpoints de `animales` (RF1, RF3, RF4, RF9) y servicio de scoring de matching (RF6, versión por reglas). Pendiente: endpoints de adoptantes/postulaciones, autenticación funcional end-to-end.
 
-Infraestructura: definida como código en `infra/terraform/` (Resource Group, App Service, Azure SQL, Blob Storage, Key Vault, Application Insights). Pendiente: primer `terraform apply` real y despliegue de la API.
+Infraestructura: definida como código en `infra/terraform/` (Elastic Beanstalk, RDS PostgreSQL, S3, SSM Parameter Store, IAM). Migrada de Azure a AWS — ver [ADR-0005](docs/adr/0005-migracion-azure-a-aws.md). Pendiente: primer `terraform apply` real y despliegue de la API.
 
 ### Correr la API localmente
 ```bash
@@ -46,13 +46,13 @@ Refugia le da a un refugio una ficha única del animal, su historia clínica est
 
 | Componente | Tecnología | Por qué |
 |---|---|---|
-| API | Node.js / Express | Ver [ADR-0001](docs/adr/0001-hosting-api.md) |
-| Base de datos | Azure SQL Database | Modelo 100% relacional (ver modelo de datos) |
-| Fotos | Azure Blob Storage | Binarios fuera de la base, patrón estándar |
-| Hosting | Azure App Service | Ver [ADR-0001](docs/adr/0001-hosting-api.md) |
-| Auth | JWT propio | Ver [ADR-0002](docs/adr/0002-auth.md) |
-| Observabilidad | Application Insights | Bajo costo, integración nativa con App Service |
-| Secrets | Azure Key Vault | Connection strings y claves fuera del código |
+| API | Node.js / Express | Ver [ADR-0005](docs/adr/0005-migracion-azure-a-aws.md) |
+| Base de datos | AWS RDS (PostgreSQL) | Modelo 100% relacional (ver modelo de datos) |
+| Fotos | AWS S3 | Binarios fuera de la base, patrón estándar |
+| Hosting | AWS Elastic Beanstalk (instancia única) | Ver [ADR-0005](docs/adr/0005-migracion-azure-a-aws.md) |
+| Auth | JWT propio | Ver [ADR-0005](docs/adr/0005-migracion-azure-a-aws.md) |
+| Observabilidad | CloudWatch | Integración nativa con Elastic Beanstalk |
+| Secrets | AWS SSM Parameter Store | Connection strings y claves fuera del código |
 | IaC | Terraform | Infraestructura versionada y reproducible |
 | CI/CD | GitHub Actions | Build + deploy automatizado |
 
@@ -63,7 +63,7 @@ Detalle completo en [docs/architecture.md](docs/architecture.md) (pendiente de c
 - [Requisitos funcionales y no funcionales](docs/requirements.md)
 - [Modelo de datos](docs/data-model.md)
 - [Infraestructura (Terraform)](docs/infrastructure.md)
-- [ADRs](docs/adr/) — incluye [ADR-0001 hosting](docs/adr/0001-hosting-api.md), [ADR-0002 auth](docs/adr/0002-auth.md), [ADR-0003 modelo de eventos clínicos y ORM](docs/adr/0003-modelo-eventos-clinicos-orm.md), [ADR-0004 tiers de costo](docs/adr/0004-costos-infraestructura.md)
+- [ADRs](docs/adr/) — [ADR-0005 migración a AWS](docs/adr/0005-migracion-azure-a-aws.md) (vigente), [ADR-0003 modelo de eventos clínicos y ORM](docs/adr/0003-modelo-eventos-clinicos-orm.md) (vigente); 0001, 0002 y 0004 quedan como registro histórico de la decisión original en Azure
 - [Roadmap / fuera de alcance](docs/roadmap.md)
 
 ## Disclaimer de portfolio

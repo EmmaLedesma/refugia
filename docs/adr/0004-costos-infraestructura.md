@@ -1,6 +1,6 @@
 # ADR-0004: Tiers de bajo costo para infraestructura de portfolio
 
-**Estado:** Aceptada
+**Estado:** Reemplazada por [ADR-0005](0005-migracion-azure-a-aws.md) — tiers equivalentes redefinidos para AWS. Se conserva como registro histórico.
 
 ## Contexto
 Refugia es un proyecto personal de portfolio, sin financiamiento ni tráfico productivo real. La infraestructura en Azure debe minimizar costo sin comprometer la posibilidad de hacer una demo funcional.

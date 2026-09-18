@@ -1,6 +1,6 @@
 # ADR-0003: Modelo de eventos clínicos normalizado + Sequelize como ORM
 
-**Estado:** Aceptada
+**Estado:** Aceptada — actualizada tras [ADR-0005](0005-migracion-azure-a-aws.md): el motor de base de datos pasó de Azure SQL a **PostgreSQL en AWS RDS**. La decisión de normalización y la elección de Sequelize no cambian (Sequelize soporta el dialecto `postgres` igual de bien que `mssql`); solo cambia el driver (`pg` en vez de `tedious`).
 
 ## Contexto
 El modelo de datos requiere historia clínica con campos estructurados por tipo de evento (vacuna, cirugía, tratamiento — ver docs/data-model.md). Además, la API (Node/Express) necesita una forma de mapear el modelo relacional a código.
