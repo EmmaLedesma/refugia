@@ -78,8 +78,6 @@ No hay demo en vivo todavía — se agrega el badge apenas la API esté realment
               AWS CloudWatch (logs y métricas)
 ```
 
-Diseñado originalmente en Azure y migrado a AWS a mitad de proyecto — ver [ADR-0005](docs/adr/0005-migracion-azure-a-aws.md) para el porqué y el mapeo completo de servicios.
-
 ---
 
 ## 🚀 Recursos AWS provisionados
@@ -132,7 +130,7 @@ Diseñado originalmente en Azure y migrado a AWS a mitad de proyecto — ver [AD
 
 - Secretos (`db_password`, `jwt_secret`) en SSM Parameter Store, nunca en el repo — leídos en runtime vía IAM Role
 - `.env` y `terraform.tfvars` en `.gitignore`
-- **Deuda de seguridad conocida y documentada** (no oculta): el security group de RDS acepta el puerto 5432 desde la VPC por defecto completa, y el usuario IAM de deploy tiene `AdministratorAccess` en vez de permisos acotados — ambas son simplificaciones deliberadas para acelerar el MVP, señaladas en [ADR-0005](docs/adr/0005-migracion-azure-a-aws.md) y pendientes de endurecer antes de cualquier demo pública prolongada
+- **Deuda de seguridad conocida y documentada** (no oculta): el security group de RDS acepta el puerto 5432 desde la VPC por defecto completa, y el usuario IAM de deploy tiene `AdministratorAccess` en vez de permisos acotados — ambas son simplificaciones deliberadas para acelerar el MVP, señaladas en [ADR-0004](docs/adr/0004-costos-infraestructura.md) y pendientes de endurecer antes de cualquier demo pública prolongada
 
 ---
 
@@ -143,7 +141,7 @@ refugia/
 ├── README.md
 ├── docs/
 │   ├── requirements.md, data-model.md, roadmap.md, infrastructure.md
-│   └── adr/            # 0001-0005, decisiones documentadas con trade-offs
+│   └── adr/            # 0001-0004, decisiones documentadas con trade-offs
 ├── infra/terraform/     # Toda la infraestructura AWS como código
 └── api/
     ├── .sequelizerc
@@ -173,7 +171,7 @@ npm run dev
 ## 🧭 Decisiones técnicas
 
 **¿Por qué Elastic Beanstalk y no Lambda?**
-Latencia consistente para una demo en vivo, sin cold starts. Ver [ADR-0005](docs/adr/0005-migracion-azure-a-aws.md).
+Latencia consistente para una demo en vivo, sin cold starts. Ver [ADR-0001](docs/adr/0001-hosting-api.md).
 
 **¿Por qué PostgreSQL normalizado y no una colección NoSQL para la historia clínica?**
 Con solo 3 tipos de evento clínico fijos (vacuna, cirugía, tratamiento), la normalización es simple y se explica con un diagrama ER convencional. Ver [ADR-0003](docs/adr/0003-modelo-eventos-clinicos-orm.md).
@@ -181,8 +179,8 @@ Con solo 3 tipos de evento clínico fijos (vacuna, cirugía, tratamiento), la no
 **¿Por qué scoring por reglas y no Machine Learning desde el MVP?**
 Un modelo de ML necesita historial real de adopciones para aprender algo útil — no existe todavía. El modelo de datos ya está diseñado para que un futuro modelo use los mismos atributos como features, sin rediseño. Ver `docs/data-model.md` y `docs/roadmap.md`.
 
-**¿Por qué migrar de Azure a AWS a mitad de proyecto?**
-Restricción de método de pago, no técnica — documentado sin maquillar en [ADR-0005](docs/adr/0005-migracion-azure-a-aws.md), incluyendo qué ADRs anteriores quedaron reemplazados y por qué.
+**¿Por qué AWS y no otro proveedor?**
+Ya hay experiencia hands-on previa con AWS (ver [Shem72](https://github.com/EmmaLedesma) en el portfolio), lo que permite iterar rápido sobre servicios ya conocidos (RDS, S3, IAM, Elastic Beanstalk) en vez de invertir tiempo de aprendizaje de plataforma en un proyecto con foco en modelado y arquitectura, no en explorar un proveedor nuevo.
 
 ---
 

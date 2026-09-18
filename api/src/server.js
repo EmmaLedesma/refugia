@@ -13,11 +13,8 @@ async function iniciar() {
 
     await sequelize.authenticate();
     console.log('Conexión a la base de datos establecida.');
-
-    if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: true });
-      console.log('Modelos sincronizados con la base de datos.');
-    }
+    // El esquema se crea/actualiza con migraciones (`npm run migrate`), no acá.
+    // Ver docs/adr/0003-modelo-eventos-clinicos-orm.md.
 
     app.listen(PORT, () => {
       console.log(`Refugia API escuchando en el puerto ${PORT}`);

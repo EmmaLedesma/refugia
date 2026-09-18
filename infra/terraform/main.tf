@@ -2,7 +2,7 @@ locals {
   name_prefix = "${var.project_name}-${var.environment}"
 }
 
-# --- VPC por defecto (simplifica el MVP; ver riesgo de seguridad en ADR-0005) ---
+# --- VPC por defecto (simplifica el MVP; ver riesgo de seguridad en ADR-0004) ---
 data "aws_vpc" "default" {
   default = true
 }
@@ -54,7 +54,7 @@ resource "aws_security_group" "rds" {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
-    # MVP: abierto a nivel de VPC por defecto. Ver riesgo señalado en ADR-0005 —
+    # MVP: abierto a nivel de VPC por defecto. Ver riesgo señalado en ADR-0004 —
     # restringir al security group de Beanstalk antes de una demo pública prolongada.
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -84,7 +84,7 @@ resource "aws_db_instance" "main" {
   password                = var.db_password
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
-  publicly_accessible    = true # MVP — ver riesgo en ADR-0005
+  publicly_accessible    = true # MVP — ver riesgo en ADR-0004
   skip_final_snapshot    = true
   multi_az                = false # bajo costo, sin alta disponibilidad (aceptado en RNF2)
 }
@@ -154,7 +154,7 @@ resource "aws_iam_instance_profile" "eb" {
   role = aws_iam_role.eb_instance_role.name
 }
 
-# --- Elastic Beanstalk (API) — ver docs/adr/0005-migracion-azure-a-aws.md ---
+# --- Elastic Beanstalk (API) — ver docs/adr/0001-hosting-api.md ---
 resource "aws_elastic_beanstalk_application" "api" {
   name        = local.name_prefix
   description = "Refugia API — MVP"
@@ -163,7 +163,7 @@ resource "aws_elastic_beanstalk_application" "api" {
 resource "aws_elastic_beanstalk_environment" "api" {
   name                = "${local.name_prefix}-env"
   application         = aws_elastic_beanstalk_application.api.name
-  solution_stack_name = "64bit Amazon Linux 2023 v6.4.3 running Node.js 20" # verificar versión vigente antes de aplicar
+  solution_stack_name = "64bit Amazon Linux 2023 v6.11.8 running Node.js 22"
 
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
@@ -180,7 +180,7 @@ resource "aws_elastic_beanstalk_environment" "api" {
   setting {
     namespace = "aws:elasticbeanstalk:environment"
     name      = "EnvironmentType"
-    value     = "SingleInstance" # sin load balancer — bajo costo, ver ADR-0005
+    value     = "SingleInstance" # sin load balancer — bajo costo, ver ADR-0004
   }
 
   setting {

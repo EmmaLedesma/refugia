@@ -1,6 +1,6 @@
 # Infraestructura — Refugia MVP (AWS)
 
-Provisionada íntegramente con Terraform (`infra/terraform/`), región **sa-east-1 (São Paulo)**. Ver [ADR-0005](adr/0005-migracion-azure-a-aws.md) para el contexto de la migración desde Azure.
+Provisionada íntegramente con Terraform (`infra/terraform/`), región **sa-east-1 (São Paulo)**.
 
 ## Recursos
 
@@ -31,7 +31,7 @@ terraform apply
 
 ## Riesgo de seguridad conocido (MVP)
 
-RDS está configurado con `publicly_accessible = true` y el security group permite el puerto 5432 desde cualquier IP dentro de la VPC por defecto — una simplificación deliberada para el MVP, documentada en el ADR-0005. Antes de una demo pública prolongada, conviene restringir el security group de RDS para aceptar tráfico únicamente desde el security group de Elastic Beanstalk.
+RDS está configurado con `publicly_accessible = true` y el security group permite el puerto 5432 desde cualquier IP dentro de la VPC por defecto — una simplificación deliberada para el MVP, documentada en el ADR-0004. Antes de una demo pública prolongada, conviene restringir el security group de RDS para aceptar tráfico únicamente desde el security group de Elastic Beanstalk.
 
 ## Costos (estimado, no verificado con calculadora oficial)
 

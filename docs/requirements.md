@@ -22,7 +22,7 @@
 - RNF1: Seguridad — HTTPS, control de acceso por rol, secretos en Key Vault
 - RNF2: Disponibilidad de nivel demo/portfolio (no HA productiva) — declarado explícitamente, sin sobre-prometer
 - RNF3: Observabilidad — logs y métricas básicas vía Application Insights
-- RNF4: Costos — arquitectura dentro de free tier / bajo costo de Azure
+- RNF4: Costos — arquitectura dentro de free tier / bajo costo de AWS
 - RNF5: Documentación — toda decisión de arquitectura relevante registrada como ADR
 
 ## Explícitamente fuera de alcance

@@ -3,7 +3,7 @@ const sequelize = require('../config/database');
 
 const Foto = sequelize.define('Foto', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  url: { type: DataTypes.STRING, allowNull: false }, // URL del blob en Azure Storage
+  url: { type: DataTypes.STRING, allowNull: false }, // URL del objeto en S3
   orden: { type: DataTypes.INTEGER, defaultValue: 0 },
   esPrincipal: { type: DataTypes.BOOLEAN, defaultValue: false },
 }, {
