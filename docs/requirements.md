@@ -15,7 +15,7 @@
 - RF7: Registrar postulación de adopción y su resultado
 
 ### Transversal
-- RF8: Autenticación del staff del refugio (rol único, sin multi-tenant)
+- RF8: Autenticación del staff del refugio (usuario único definido por configuración, sin tabla de usuarios — ver `docs/adr/0002-auth.md`)
 - RF9: Vista pública de solo lectura de animales disponibles (sin login)
 
 ## No funcionales

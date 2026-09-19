@@ -36,3 +36,13 @@ RDS está configurado con `publicly_accessible = true` y el security group permi
 ## Costos (estimado, no verificado con calculadora oficial)
 
 Diseñado para el free tier de AWS: EC2 t3.micro (Beanstalk, instancia única, sin load balancer), RDS db.t3.micro, S3 con uso bajo, SSM Parameter Store (gratuito para SecureString estándar). Esto es una estimación de diseño, no una cotización — correr la [AWS Pricing Calculator](https://calculator.aws/) antes de dejarlo corriendo por períodos largos.
+
+## Operación: rotar secretos requiere reiniciar la app
+
+Los secretos (`db_password`, `jwt_secret`, `staff_password_hash`) se leen de SSM **una sola vez, al arrancar el proceso** (`src/config/secrets.js`). Actualizar un parámetro en SSM con `aws ssm put-parameter --overwrite` **no** lo aplica a la instancia en ejecución. Después de rotar cualquier secreto:
+
+```bash
+aws elasticbeanstalk restart-app-server --environment-name refugia-dev-env
+```
+
+Sin este paso, la app sigue usando el valor viejo en memoria hasta el próximo deploy o reinicio.

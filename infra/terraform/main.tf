@@ -46,7 +46,7 @@ resource "aws_s3_bucket_policy" "fotos_lectura_publica" {
 # --- Security Groups ---
 resource "aws_security_group" "rds" {
   name        = "${local.name_prefix}-rds-sg"
-  description = "Permite acceso a PostgreSQL desde Elastic Beanstalk y, temporalmente, para administración"
+  description = "Permite acceso a PostgreSQL desde Elastic Beanstalk y, temporalmente, para administracion"
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
@@ -64,6 +64,10 @@ resource "aws_security_group" "rds" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
@@ -94,12 +98,30 @@ resource "aws_ssm_parameter" "db_password" {
   name  = "/${local.name_prefix}/db_password"
   type  = "SecureString"
   value = var.db_password
+
+  lifecycle {
+    ignore_changes = [value] # el valor real se rota a mano con aws ssm put-parameter, no acá
+  }
 }
 
 resource "aws_ssm_parameter" "jwt_secret" {
   name  = "/${local.name_prefix}/jwt_secret"
   type  = "SecureString"
-  value = "changeme-generar-un-secreto-fuerte" # reemplazar manualmente tras el primer apply
+  value = "changeme-generar-un-secreto-fuerte" # solo usado en la creación inicial
+
+  lifecycle {
+    ignore_changes = [value] # el valor real se rota a mano con aws ssm put-parameter, no acá
+  }
+}
+
+resource "aws_ssm_parameter" "staff_password_hash" {
+  name  = "/${local.name_prefix}/staff_password_hash"
+  type  = "SecureString"
+  value = "changeme-generar-hash-bcrypt" # solo usado en la creación inicial
+
+  lifecycle {
+    ignore_changes = [value] # el valor real se rota a mano con aws ssm put-parameter, no acá
+  }
 }
 
 # --- IAM Role para las instancias de Elastic Beanstalk ---
@@ -217,6 +239,18 @@ resource "aws_elastic_beanstalk_environment" "api" {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "NODE_ENV"
     value     = "production"
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "STAFF_USERNAME"
+    value     = var.staff_username
+  }
+
+  setting {
+    namespace = "aws:elasticbeanstalk:application:environment"
+    name      = "PROJECT_NAME"
+    value     = local.name_prefix
   }
 
   # DB_PASSWORD y JWT_SECRET se leen desde SSM Parameter Store en runtime

@@ -23,20 +23,20 @@ Proyecto académico (materia *Administración de Negocios Digitales*) y proyecto
 
 ## 🚧 Estado actual
 
-**Infraestructura y datos: desplegados y funcionando. Código de la API: aún no desplegado.**
+**Infraestructura, datos y API: desplegados y funcionando de punta a punta.**
 
 | Componente | Estado |
 |---|---|
 | Infraestructura AWS (Terraform) | ✅ 16 recursos creados y corriendo |
 | Base de datos (esquema) | ✅ 8 tablas migradas en RDS real |
-| Modelos, matching service, middleware | ✅ Escritos |
-| Endpoint `animales` (RF1, RF3, RF4, RF9) | ✅ Escrito, pendiente de desplegar |
-| Endpoints `adoptantes` / `postulaciones` | ⬜ Pendiente |
-| Login (emisión de JWT) | ⬜ Pendiente |
-| Deploy del código a Elastic Beanstalk | ⬜ Pendiente — hoy la URL pública sirve la app de ejemplo |
-| CI/CD | ⬜ Pendiente |
+| Deploy del código a Elastic Beanstalk | ✅ Corriendo (`v1`) |
+| Login (JWT) | ✅ Funcional — usuario único de staff (ver ADR-0002) |
+| Endpoint `animales` (RF1, RF3, RF4, RF9) | ✅ Funcional — probado end-to-end en producción |
+| Endpoints `adoptantes` / `postulaciones` | ✅ Escritos y desplegados, sin probar end-to-end todavía |
+| HTTPS | ⬜ Pendiente — el entorno solo sirve HTTP por ahora |
+| CI/CD | ⬜ Pendiente — deploy manual por ahora |
 
-No hay demo en vivo todavía — se agrega el badge apenas la API esté realmente sirviendo tráfico.
+Demo funcional vía API (sin frontend todavía): `http://refugia-dev-env.eba-f3ywkdbu.sa-east-1.elasticbeanstalk.com`
 
 ---
 

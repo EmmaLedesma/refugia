@@ -22,6 +22,7 @@ async function cargarSecretos() {
   }
   process.env.DB_PASSWORD = await obtenerParametro('db_password');
   process.env.JWT_SECRET = await obtenerParametro('jwt_secret');
+  process.env.STAFF_PASSWORD_HASH = await obtenerParametro('staff_password_hash');
 }
 
 module.exports = { cargarSecretos };

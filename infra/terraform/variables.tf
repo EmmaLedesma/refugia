@@ -39,3 +39,9 @@ variable "db_instance_class" {
   type        = string
   default     = "db.t3.micro"
 }
+
+variable "staff_username" {
+  description = "Usuario de staff del refugio (único, sin tabla de usuarios en el MVP)"
+  type        = string
+  default     = "admin"
+}
