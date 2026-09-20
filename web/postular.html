@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Postular a adopción — Refugia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="index.html" class="logo">
+      <span class="logo-mark">R</span>
+      Refugia
+    </a>
+    <div class="header-actions">
+      <a href="index.html" class="btn btn-outline">Volver</a>
+    </div>
+  </div>
+</header>
+
+<section class="hero hero-compact">
+  <div class="hero-inner">
+    <p class="hero-eyebrow" id="animal-eyebrow">Postulación de adopción</p>
+    <h1 id="animal-title">Cargando animal…</h1>
+  </div>
+</section>
+
+<div class="container-narrow" style="padding-top: 32px; padding-bottom: 48px;">
+
+  <div id="form-view">
+    <p style="color: var(--text-muted); font-size: 14.5px; margin-bottom: 20px;">
+      Completá el cuestionario para que Refugia calcule la compatibilidad entre tu hogar y el animal, y el refugio pueda evaluar tu postulación.
+    </p>
+
+    <form id="postulacion-form" class="card" novalidate>
+      <div class="form-group">
+        <label for="nombre">Nombre y apellido</label>
+        <input type="text" id="nombre" placeholder="Como te llamás" required>
+        <div class="form-error" id="err-nombre" style="display:none;"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="contacto">Email o teléfono de contacto</label>
+        <input type="text" id="contacto" placeholder="nombre@ejemplo.com" required>
+        <div class="form-error" id="err-contacto" style="display:none;"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="tipoVivienda">Tipo de vivienda</label>
+        <select id="tipoVivienda" required>
+          <option value="">Elegí una opción</option>
+          <option value="departamento">Departamento</option>
+          <option value="casa_sin_patio">Casa sin patio</option>
+          <option value="casa_con_patio">Casa con patio</option>
+        </select>
+        <div class="form-error" id="err-tipoVivienda" style="display:none;"></div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <div class="checkbox-row">
+            <input type="checkbox" id="tieneNiños">
+            <label for="tieneNiños">Hay niños en casa</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="checkbox-row">
+            <input type="checkbox" id="tieneOtrosAnimales">
+            <label for="tieneOtrosAnimales">Tengo otros animales</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="tiempoDisponibleHorasDia">Horas por día que podés dedicarle</label>
+        <input type="number" id="tiempoDisponibleHorasDia" min="0" max="24" step="0.5" placeholder="Ej: 4" required>
+        <div class="form-hint">Tiempo real de paseo, juego y atención, no solo estar en casa.</div>
+        <div class="form-error" id="err-tiempo" style="display:none;"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="experienciaPreviaMascotas">Experiencia previa con mascotas</label>
+        <select id="experienciaPreviaMascotas" required>
+          <option value="ninguna">Ninguna</option>
+          <option value="basica">Básica</option>
+          <option value="avanzada">Avanzada</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="nivelActividadDeseado">Nivel de actividad que buscás en el animal</label>
+        <select id="nivelActividadDeseado" required>
+          <option value="bajo">Bajo — tranquilo, poco paseo</option>
+          <option value="medio">Medio</option>
+          <option value="alto">Alto — mucha energía y actividad</option>
+        </select>
+      </div>
+
+      <div class="form-error" id="err-general" style="display:none; margin-bottom: 12px;"></div>
+
+      <button type="submit" class="btn btn-amber btn-block" id="submit-btn">Enviar postulación</button>
+    </form>
+  </div>
+
+  <div id="result-view" style="display:none;">
+    <div class="card result-card">
+      <p style="color: var(--text-muted); font-size: 14px;">Compatibilidad calculada</p>
+      <div class="result-score" id="result-score">—</div>
+      <p style="color: var(--text-muted); font-size: 14px;" id="result-message"></p>
+      <div class="result-detalle" id="result-detalle"></div>
+      <a href="index.html" class="btn btn-teal" style="margin-top: 24px;">Volver a animales disponibles</a>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p><strong>Refugia</strong> — proyecto de portfolio técnico y académico. No sustituye a los canales oficiales de bienestar animal de la Ciudad.</p>
+  <p class="footer-academic">Trabajo práctico para la materia Administración de Negocios Digitales, de la Licenciatura en Tecnologías Digitales — Universidad de la Ciudad de Buenos Aires.</p>
+</footer>
+
+<script>
+  const API_BASE = 'http://refugia-dev-env.eba-f3ywkdbu.sa-east-1.elasticbeanstalk.com';
+  const params = new URLSearchParams(window.location.search);
+  const animalId = params.get('animalId');
+
+  const DETALLE_LABELS = {
+    energiaVsActividad: 'Energía del animal vs. actividad buscada',
+    espacioVsTamaño: 'Espacio vs. tamaño del animal',
+    niños: 'Compatibilidad con niños',
+    otrosAnimales: 'Compatibilidad con otros animales',
+    tiempoDisponible: 'Tiempo disponible',
+  };
+
+  async function cargarAnimal() {
+    if (!animalId) {
+      document.getElementById('animal-title').textContent = 'No se indicó qué animal querés adoptar';
+      document.getElementById('postulacion-form').style.display = 'none';
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/animales/${animalId}`);
+      if (!res.ok) throw new Error('Animal no encontrado');
+      const animal = await res.json();
+      document.getElementById('animal-eyebrow').textContent = `Postulación de adopción · ${animal.especie}`;
+      document.getElementById('animal-title').textContent = `Quiero adoptar a ${animal.nombre}`;
+    } catch (err) {
+      document.getElementById('animal-title').textContent = 'No pudimos encontrar ese animal';
+      document.getElementById('postulacion-form').style.display = 'none';
+    }
+  }
+
+  function limpiarErrores() {
+    document.querySelectorAll('.form-error').forEach(el => { el.style.display = 'none'; el.textContent = ''; });
+  }
+
+  function mostrarError(campo, mensaje) {
+    const el = document.getElementById(`err-${campo}`);
+    if (el) { el.textContent = mensaje; el.style.display = 'block'; }
+  }
+
+  function validar() {
+    limpiarErrores();
+    let valido = true;
+    const nombre = document.getElementById('nombre').value.trim();
+    const contacto = document.getElementById('contacto').value.trim();
+    const tipoVivienda = document.getElementById('tipoVivienda').value;
+    const tiempo = document.getElementById('tiempoDisponibleHorasDia').value;
+
+    if (!nombre) { mostrarError('nombre', 'Ingresá tu nombre.'); valido = false; }
+    if (!contacto) { mostrarError('contacto', 'Ingresá un email o teléfono.'); valido = false; }
+    if (!tipoVivienda) { mostrarError('tipoVivienda', 'Elegí un tipo de vivienda.'); valido = false; }
+    if (tiempo === '' || Number(tiempo) < 0) { mostrarError('tiempo', 'Ingresá las horas disponibles por día.'); valido = false; }
+
+    return valido;
+  }
+
+  function scoreClase(score) {
+    if (score >= 70) return 'score-alto';
+    if (score >= 40) return 'score-medio';
+    return 'score-bajo';
+  }
+
+  function scoreMensaje(score) {
+    if (score >= 70) return 'Alta compatibilidad — el refugio va a revisar tu postulación con prioridad.';
+    if (score >= 40) return 'Compatibilidad media — el refugio va a evaluar tu postulación junto con otras.';
+    return 'Compatibilidad baja en varios criterios — igual quedó registrada para que el refugio la revise.';
+  }
+
+  document.getElementById('postulacion-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!validar()) return;
+
+    const submitBtn = document.getElementById('submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enviando…';
+    document.getElementById('err-general').style.display = 'none';
+
+    const adoptanteBody = {
+      nombre: document.getElementById('nombre').value.trim(),
+      contacto: document.getElementById('contacto').value.trim(),
+      tipoVivienda: document.getElementById('tipoVivienda').value,
+      tieneNiños: document.getElementById('tieneNiños').checked,
+      tieneOtrosAnimales: document.getElementById('tieneOtrosAnimales').checked,
+      tiempoDisponibleHorasDia: Number(document.getElementById('tiempoDisponibleHorasDia').value),
+      experienciaPreviaMascotas: document.getElementById('experienciaPreviaMascotas').value,
+      nivelActividadDeseado: document.getElementById('nivelActividadDeseado').value,
+    };
+
+    try {
+      const adoptanteRes = await fetch(`${API_BASE}/api/adoptantes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(adoptanteBody),
+      });
+      if (!adoptanteRes.ok) throw new Error('No se pudo registrar el cuestionario');
+      const adoptante = await adoptanteRes.json();
+
+      const postulacionRes = await fetch(`${API_BASE}/api/postulaciones`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ animalId: Number(animalId), adoptanteId: adoptante.id }),
+      });
+      if (!postulacionRes.ok) throw new Error('No se pudo registrar la postulación');
+      const postulacion = await postulacionRes.json();
+
+      mostrarResultado(postulacion);
+    } catch (err) {
+      document.getElementById('err-general').textContent = 'Algo salió mal al enviar tu postulación. Intentá de nuevo.';
+      document.getElementById('err-general').style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Enviar postulación';
+    }
+  });
+
+  function mostrarResultado(postulacion) {
+    document.getElementById('form-view').style.display = 'none';
+    document.getElementById('result-view').style.display = 'block';
+
+    const score = postulacion.scoreMatching || 0;
+    const scoreEl = document.getElementById('result-score');
+    scoreEl.textContent = `${score}%`;
+    scoreEl.className = `result-score ${scoreClase(score)}`;
+    document.getElementById('result-message').textContent = scoreMensaje(score);
+
+    const detalle = postulacion.detalleMatching || {};
+    const detalleEl = document.getElementById('result-detalle');
+    const entradas = Object.entries(detalle);
+    if (!entradas.length) {
+      detalleEl.innerHTML = '';
+      return;
+    }
+    detalleEl.innerHTML = entradas.map(([clave, valor]) => `
+      <div class="result-detalle-item">
+        <span>${DETALLE_LABELS[clave] || clave}</span>
+        <strong>${valor}</strong>
+      </div>
+    `).join('');
+  }
+
+  cargarAnimal();
+</script>
+
+</body>
+</html>

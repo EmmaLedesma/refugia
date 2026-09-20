@@ -32,11 +32,12 @@ Proyecto académico (materia *Administración de Negocios Digitales*) y proyecto
 | Deploy del código a Elastic Beanstalk | ✅ Corriendo (`v1`) |
 | Login (JWT) | ✅ Funcional — usuario único de staff (ver ADR-0002) |
 | Endpoint `animales` (RF1, RF3, RF4, RF9) | ✅ Funcional — probado end-to-end en producción |
-| Endpoints `adoptantes` / `postulaciones` | ✅ Escritos y desplegados, sin probar end-to-end todavía |
+| Endpoints `adoptantes` / `postulaciones` | ✅ Funcional — validado con datos ricos y scores diferenciados |
+| Frontend (`web/`) | ✅ Home pública, formulario de postulación y panel del staff — HTML/CSS/JS plano, sin build tooling, consumiendo la API real |
 | HTTPS | ⬜ Pendiente — el entorno solo sirve HTTP por ahora |
 | CI/CD | ⬜ Pendiente — deploy manual por ahora |
 
-Demo funcional vía API (sin frontend todavía): `http://refugia-dev-env.eba-f3ywkdbu.sa-east-1.elasticbeanstalk.com`
+Demo funcional: `http://refugia-dev-env.eba-f3ywkdbu.sa-east-1.elasticbeanstalk.com` (API) — el frontend (`web/`) se abre localmente por ahora, todavía no está hosteado.
 
 ---
 
@@ -130,7 +131,7 @@ Demo funcional vía API (sin frontend todavía): `http://refugia-dev-env.eba-f3y
 
 - Secretos (`db_password`, `jwt_secret`) en SSM Parameter Store, nunca en el repo — leídos en runtime vía IAM Role
 - `.env` y `terraform.tfvars` en `.gitignore`
-- **Deuda de seguridad conocida y documentada** (no oculta): el security group de RDS acepta el puerto 5432 desde la VPC por defecto completa, y el usuario IAM de deploy tiene `AdministratorAccess` en vez de permisos acotados — ambas son simplificaciones deliberadas para acelerar el MVP, señaladas en [ADR-0004](docs/adr/0004-costos-infraestructura.md) y pendientes de endurecer antes de cualquier demo pública prolongada
+- **Deuda de seguridad conocida y documentada** (no oculta): el security group de RDS acepta el puerto 5432 desde la VPC por defecto completa, y el usuario IAM de deploy tiene `AdministratorAccess` en vez de permisos acotados — ambas son simplificaciones deliberadas para priorizar velocidad de iteración mientras el proyecto está en desarrollo activo, señaladas en [ADR-0004](docs/adr/0004-costos-infraestructura.md), y planificadas para endurecerse en la recta final, una vez que el MVP tenga interfaz y esté listo para mostrarse.
 
 ---
 
@@ -149,10 +150,17 @@ refugia/
         ├── config/       # conexión DB, secretos SSM, config sequelize-cli
         ├── models/        # Sequelize — 8 entidades
         ├── migrations/    # 8 migraciones versionadas
-        ├── controllers/, routes/   # por ahora: animales
+        ├── seeders/       # datos de demo (usa el matchingService real, no scores inventados)
+        ├── controllers/, routes/   # animales, adoptantes, postulaciones, auth
         ├── services/      # matchingService (scoring)
         └── middleware/    # auth (JWT), errorHandler
 ```
+
+`web/` (frontend): HTML/CSS/JS plano, sin build tooling — decisión deliberada para MVP rápido sin agregar complejidad de tooling que el problema no pide todavía.
+- `index.html` — home pública, lista animales disponibles en vivo desde la API
+- `postular.html` — cuestionario de adoptante + postulación, muestra el score calculado
+- `staff.html` — login + panel: alta de animales, postulaciones ordenadas por score con aceptar/rechazar
+- `assets/style.css` — diseño inspirado en la estética institucional de [Animales BA](https://buenosaires.gob.ar/inicio/animales-ba) (navy/teal, cards con acento), con un acento ámbar propio reservado para los momentos de adopción
 
 ---
 
@@ -165,6 +173,8 @@ npm install
 npm run migrate         # aplica el esquema si no está creado
 npm run dev
 ```
+
+Frontend: abrir `web/index.html` directo en el navegador (sin servidor ni build) — llama a la API real desplegada en AWS.
 
 ---
 

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Refugia — Gestión y adopción responsable de animales en CABA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="index.html" class="logo">
+      <span class="logo-mark">R</span>
+      Refugia
+    </a>
+    <div class="header-actions">
+      <a href="staff.html" class="btn btn-outline">Ingresar</a>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <p class="hero-eyebrow">Ciudad de Buenos Aires · Ley 6856</p>
+    <h1>La gestión que los refugios necesitan, no otra vidriera de adopción</h1>
+    <p>Refugia le da a las organizaciones rescatistas de CABA una ficha clínica real, matching de adopción responsable y coordinación operativa — todo lo que WhatsApp y Excel no pueden ofrecer.</p>
+    <div class="hero-actions">
+      <a href="#animales" class="btn btn-amber">Ver animales en adopción</a>
+      <a href="staff.html" class="btn btn-teal">Soy un refugio</a>
+    </div>
+  </div>
+</section>
+
+<section class="highlight-section">
+  <div class="highlight-card">
+    <div class="highlight-icon">+</div>
+    <div class="highlight-text">
+      <h2>Adopción responsable, no un catálogo</h2>
+      <p>Cada postulación se evalúa con un motor de compatibilidad real — espacio, energía, experiencia previa y tiempo disponible — antes de conectar a la familia con el animal.</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2 class="section-title">Qué resuelve Refugia</h2>
+    <div class="programs-grid">
+      <div class="program-card">
+        <div class="program-icon">&#128220;</div>
+        <h3>Ficha clínica por animal</h3>
+        <p>Vacunas, cirugías y tratamientos, ordenados y consultables — no perdidos en un chat.</p>
+      </div>
+      <div class="program-card">
+        <div class="program-icon">&#129309;</div>
+        <h3>Matching de adopción</h3>
+        <p>Compatibilidad calculada entre el animal y quien adopta, con criterios explícitos.</p>
+      </div>
+      <div class="program-card">
+        <div class="program-icon">&#128202;</div>
+        <h3>Seguimiento de postulaciones</h3>
+        <p>El refugio ve todas las postulaciones ordenadas por compatibilidad, en un solo lugar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="container animals-section" id="animales">
+  <div class="animals-header">
+    <h2 class="section-title" style="margin:0;">Animales disponibles</h2>
+    <p>Datos en vivo desde Refugia</p>
+  </div>
+  <div class="animals-grid" id="animals-grid">
+    <div class="loading-state">Cargando animales…</div>
+  </div>
+</div>
+
+<footer>
+  <p><strong>Refugia</strong> — proyecto de portfolio técnico y académico. No sustituye a los canales oficiales de bienestar animal de la Ciudad.</p>
+  <p class="footer-academic">Trabajo práctico para la materia Administración de Negocios Digitales, de la Licenciatura en Tecnologías Digitales — Universidad de la Ciudad de Buenos Aires.</p>
+</footer>
+
+<script>
+  const API_BASE = 'http://refugia-dev-env.eba-f3ywkdbu.sa-east-1.elasticbeanstalk.com';
+  const ESPECIE_ICONO = { perro: '&#128054;', gato: '&#128049;' };
+
+  async function cargarAnimales() {
+    const grid = document.getElementById('animals-grid');
+    try {
+      const res = await fetch(`${API_BASE}/api/animales?estado=disponible`);
+      if (!res.ok) throw new Error('Respuesta no OK');
+      const animales = await res.json();
+
+      if (!animales.length) {
+        grid.innerHTML = '<div class="empty-state">No hay animales disponibles en este momento.</div>';
+        return;
+      }
+
+      grid.innerHTML = animales.map(a => `
+        <div class="animal-card">
+          <div class="animal-photo">${ESPECIE_ICONO[a.especie] || '&#128062;'}</div>
+          <div class="animal-body">
+            <div class="animal-name">${escapeHtml(a.nombre)}</div>
+            <div class="animal-meta">${escapeHtml(a.especie)}${a.edadEstimada ? ' · ' + escapeHtml(a.edadEstimada) : ''}</div>
+            <div class="animal-tags">
+              ${a.nivelEnergia ? `<span class="tag">Energía ${escapeHtml(a.nivelEnergia)}</span>` : ''}
+              ${a.tamaño ? `<span class="tag">${escapeHtml(a.tamaño)}</span>` : ''}
+            </div>
+            <a class="animal-cta" href="postular.html?animalId=${a.id}">Quiero adoptar a ${escapeHtml(a.nombre)}</a>
+          </div>
+        </div>
+      `).join('');
+    } catch (err) {
+      grid.innerHTML = '<div class="empty-state">No pudimos cargar los animales en este momento. Intentá de nuevo más tarde.</div>';
+      console.error(err);
+    }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  cargarAnimales();
+</script>
+
+</body>
+</html>
