@@ -34,10 +34,10 @@ Proyecto académico (materia *Administración de Negocios Digitales*) y proyecto
 | Endpoint `animales` (RF1, RF3, RF4, RF9) | ✅ Funcional — probado end-to-end en producción |
 | Endpoints `adoptantes` / `postulaciones` | ✅ Funcional — validado con datos ricos y scores diferenciados |
 | Frontend (`web/`) | ✅ Home pública, formulario de postulación y panel del staff — HTML/CSS/JS plano, sin build tooling, consumiendo la API real |
-| HTTPS | ⬜ Pendiente — el entorno solo sirve HTTP por ahora |
+| HTTPS + hosting del frontend | ✅ CloudFront (S3 + API bajo `/api`) — ver [ADR-0005](docs/adr/0005-https-y-hosting-frontend.md) |
 | CI/CD | ⬜ Pendiente — deploy manual por ahora |
 
-Demo funcional: `http://refugia-dev-env.eba-f3ywkdbu.sa-east-1.elasticbeanstalk.com` (API) — el frontend (`web/`) se abre localmente por ahora, todavía no está hosteado.
+Demo funcional (frontend + API, todo HTTPS): **https://d1jgrigc19zcfs.cloudfront.net**
 
 ---
 

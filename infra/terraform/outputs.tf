@@ -12,3 +12,8 @@ output "s3_bucket_name" {
   description = "Nombre del bucket S3 de fotos"
   value       = aws_s3_bucket.fotos.bucket
 }
+
+output "site_url" {
+  description = "URL pública HTTPS del sitio completo (frontend + API bajo /api)"
+  value       = "https://${aws_cloudfront_distribution.main.domain_name}"
+}

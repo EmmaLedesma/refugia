@@ -82,7 +82,7 @@
 </footer>
 
 <script>
-  const API_BASE = 'http://refugia-dev-env.eba-f3ywkdbu.sa-east-1.elasticbeanstalk.com';
+  const API_BASE = location.protocol === 'file:' ? 'http://refugia-dev-env.eba-f3ywkdbu.sa-east-1.elasticbeanstalk.com' : '';
   const ESPECIE_ICONO = { perro: '&#128054;', gato: '&#128049;' };
 
   async function cargarAnimales() {
