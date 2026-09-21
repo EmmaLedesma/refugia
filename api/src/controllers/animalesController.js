@@ -1,4 +1,4 @@
-const { Animal, Foto, EventoClinico } = require('../models');
+const { Animal, Foto, EventoClinico, Vacuna, Cirugia, Tratamiento, sequelize } = require('../models');
 
 // RF4: listar y buscar por estado/especie
 async function listar(req, res) {
@@ -64,4 +64,81 @@ async function cambiarEstado(req, res) {
   }
 }
 
-module.exports = { listar, crear, obtenerPorId, cambiarEstado };
+// RF2: consultar historia clínica de un animal (público — transparencia para quien evalúa adoptar)
+async function listarEventosClinicos(req, res) {
+  try {
+    const eventos = await EventoClinico.findAll({
+      where: { animalId: req.params.id },
+      include: [
+        { model: Vacuna, as: 'detalleVacuna' },
+        { model: Cirugia, as: 'detalleCirugia' },
+        { model: Tratamiento, as: 'detalleTratamiento' },
+      ],
+      order: [['fecha', 'DESC']],
+    });
+    res.json(eventos);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener la historia clínica', detalle: err.message });
+  }
+}
+
+// RF2: registrar un evento clínico — solo staff
+async function crearEventoClinico(req, res) {
+  const { tipo, fecha, veterinario, notas, detalle = {} } = req.body;
+  const tiposValidos = ['vacuna', 'cirugia', 'tratamiento'];
+  if (!tiposValidos.includes(tipo)) {
+    return res.status(400).json({ error: `tipo inválido. Valores permitidos: ${tiposValidos.join(', ')}` });
+  }
+  if (!fecha) {
+    return res.status(400).json({ error: 'fecha es requerida' });
+  }
+
+  const animal = await Animal.findByPk(req.params.id);
+  if (!animal) return res.status(404).json({ error: 'Animal no encontrado' });
+
+  const t = await sequelize.transaction();
+  try {
+    const evento = await EventoClinico.create(
+      { animalId: animal.id, tipo, fecha, veterinario, notas },
+      { transaction: t }
+    );
+
+    if (tipo === 'vacuna') {
+      await Vacuna.create(
+        { eventoId: evento.id, nombreVacuna: detalle.nombreVacuna, proximaDosis: detalle.proximaDosis || null },
+        { transaction: t }
+      );
+    } else if (tipo === 'cirugia') {
+      await Cirugia.create(
+        { eventoId: evento.id, procedimiento: detalle.procedimiento, complicaciones: detalle.complicaciones || null },
+        { transaction: t }
+      );
+    } else if (tipo === 'tratamiento') {
+      await Tratamiento.create(
+        {
+          eventoId: evento.id,
+          medicamento: detalle.medicamento,
+          dosis: detalle.dosis || null,
+          duracionDias: detalle.duracionDias || null,
+        },
+        { transaction: t }
+      );
+    }
+
+    await t.commit();
+
+    const eventoCompleto = await EventoClinico.findByPk(evento.id, {
+      include: [
+        { model: Vacuna, as: 'detalleVacuna' },
+        { model: Cirugia, as: 'detalleCirugia' },
+        { model: Tratamiento, as: 'detalleTratamiento' },
+      ],
+    });
+    res.status(201).json(eventoCompleto);
+  } catch (err) {
+    await t.rollback();
+    res.status(400).json({ error: 'No se pudo registrar el evento clínico', detalle: err.message });
+  }
+}
+
+module.exports = { listar, crear, obtenerPorId, cambiarEstado, listarEventosClinicos, crearEventoClinico };

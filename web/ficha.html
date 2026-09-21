@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ficha del animal — Refugia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .evento-item { border-left: 3px solid var(--teal); padding: 12px 16px; margin-bottom: 12px; background: var(--pale); border-radius: 0 10px 10px 0; }
+  .evento-tipo { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--teal-dark); letter-spacing: 0.03em; }
+  .evento-fecha { font-size: 12px; color: var(--text-muted); float: right; }
+  .evento-detalle { font-size: 14px; margin-top: 6px; }
+  .evento-notas { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+  .admin-box { border: 1.5px dashed var(--teal); border-radius: 12px; padding: 18px; margin-top: 20px; }
+  .admin-box summary { cursor: pointer; font-weight: 700; color: var(--teal-dark); font-size: 14px; }
+  .campo-tipo { display: none; }
+  .campo-tipo.activo { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="index.html" class="logo">
+      <span class="logo-mark">R</span>
+      Refugia
+    </a>
+    <div class="header-actions">
+      <a href="index.html" class="btn btn-outline">Volver</a>
+    </div>
+  </div>
+</header>
+
+<section class="hero hero-compact">
+  <div class="hero-inner">
+    <p class="hero-eyebrow" id="animal-eyebrow">Ficha del animal</p>
+    <h1 id="animal-title">Cargando…</h1>
+  </div>
+</section>
+
+<div class="container-narrow" style="padding-top: 28px; padding-bottom: 48px;">
+
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="animal-tags" id="animal-tags"></div>
+    <p id="animal-descripcion" style="color: var(--text-muted); font-size: 14.5px; margin-top: 10px;"></p>
+    <a href="#" id="adoptar-btn" class="btn btn-amber btn-block" style="margin-top: 16px;">Quiero adoptar</a>
+  </div>
+
+  <h2 class="section-title-sm">Historia clínica</h2>
+  <div id="eventos-list">
+    <p style="color: var(--text-muted); font-size: 14px;">Cargando…</p>
+  </div>
+
+  <details class="admin-box" id="admin-box" style="display:none;">
+    <summary>+ Agregar evento clínico (staff)</summary>
+    <form id="evento-form" style="margin-top: 16px;">
+      <div class="form-group">
+        <label for="ev-tipo">Tipo de evento</label>
+        <select id="ev-tipo" required>
+          <option value="vacuna">Vacuna</option>
+          <option value="cirugia">Cirugía</option>
+          <option value="tratamiento">Tratamiento</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="ev-fecha">Fecha</label>
+          <input type="date" id="ev-fecha" required>
+        </div>
+        <div class="form-group">
+          <label for="ev-veterinario">Veterinario</label>
+          <input type="text" id="ev-veterinario">
+        </div>
+      </div>
+
+      <div id="campo-vacuna" class="campo-tipo activo">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ev-nombreVacuna">Nombre de la vacuna</label>
+            <input type="text" id="ev-nombreVacuna">
+          </div>
+          <div class="form-group">
+            <label for="ev-proximaDosis">Próxima dosis</label>
+            <input type="date" id="ev-proximaDosis">
+          </div>
+        </div>
+      </div>
+
+      <div id="campo-cirugia" class="campo-tipo">
+        <div class="form-group">
+          <label for="ev-procedimiento">Procedimiento</label>
+          <input type="text" id="ev-procedimiento">
+        </div>
+        <div class="form-group">
+          <label for="ev-complicaciones">Complicaciones</label>
+          <input type="text" id="ev-complicaciones">
+        </div>
+      </div>
+
+      <div id="campo-tratamiento" class="campo-tipo">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ev-medicamento">Medicamento</label>
+            <input type="text" id="ev-medicamento">
+          </div>
+          <div class="form-group">
+            <label for="ev-dosis">Dosis</label>
+            <input type="text" id="ev-dosis">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="ev-duracionDias">Duración (días)</label>
+          <input type="number" id="ev-duracionDias" min="0">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="ev-notas">Notas</label>
+        <textarea id="ev-notas" rows="2"></textarea>
+      </div>
+
+      <div class="form-error" id="ev-error" style="display:none; margin-bottom: 12px;"></div>
+      <button type="submit" class="btn btn-teal" id="ev-submit-btn">Registrar evento</button>
+    </form>
+  </details>
+
+</div>
+
+<footer>
+  <p><strong>Refugia</strong> — proyecto de portfolio técnico y académico. No sustituye a los canales oficiales de bienestar animal de la Ciudad.</p>
+  <p class="footer-academic">Trabajo práctico para la materia Administración de Negocios Digitales, de la Licenciatura en Tecnologías Digitales — Universidad de la Ciudad de Buenos Aires.</p>
+</footer>
+
+<script>
+  const API_BASE = location.protocol === 'file:' ? 'http://refugia-dev-env.eba-f3ywkdbu.sa-east-1.elasticbeanstalk.com' : '';
+  const params = new URLSearchParams(window.location.search);
+  const animalId = params.get('id');
+  const ESPECIE_ICONO = { perro: '🐶', gato: '🐱' };
+  const TIPO_LABEL = { vacuna: 'Vacuna', cirugia: 'Cirugía', tratamiento: 'Tratamiento' };
+
+  function getToken() { return sessionStorage.getItem('refugia_token'); }
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = String(str ?? '');
+    return div.innerHTML;
+  }
+
+  async function cargarAnimal() {
+    if (!animalId) {
+      document.getElementById('animal-title').textContent = 'No se indicó qué animal ver';
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/animales/${animalId}`);
+      if (!res.ok) throw new Error('no encontrado');
+      const animal = await res.json();
+
+      document.getElementById('animal-eyebrow').textContent = `Ficha · ${ESPECIE_ICONO[animal.especie] || ''} ${animal.especie}`;
+      document.getElementById('animal-title').textContent = animal.nombre;
+      document.getElementById('animal-descripcion').textContent = animal.descripcion || 'Sin descripción adicional.';
+      document.getElementById('adoptar-btn').href = `postular.html?animalId=${animal.id}`;
+
+      const tags = [];
+      if (animal.edadEstimada) tags.push(`<span class="tag">${escapeHtml(animal.edadEstimada)}</span>`);
+      if (animal.nivelEnergia) tags.push(`<span class="tag">Energía ${escapeHtml(animal.nivelEnergia)}</span>`);
+      if (animal.tamaño) tags.push(`<span class="tag">Tamaño ${escapeHtml(animal.tamaño)}</span>`);
+      if (animal.aptoNiños !== 'desconocido') tags.push(`<span class="tag">${animal.aptoNiños === 'si' ? 'Apto' : 'No apto'} con niños</span>`);
+      document.getElementById('animal-tags').innerHTML = tags.join('');
+    } catch (err) {
+      document.getElementById('animal-title').textContent = 'No pudimos encontrar este animal';
+      document.getElementById('adoptar-btn').style.display = 'none';
+    }
+  }
+
+  async function cargarEventos() {
+    const list = document.getElementById('eventos-list');
+    try {
+      const res = await fetch(`${API_BASE}/api/animales/${animalId}/eventos-clinicos`);
+      if (!res.ok) throw new Error();
+      const eventos = await res.json();
+
+      if (!eventos.length) {
+        list.innerHTML = '<p style="color: var(--text-muted); font-size: 14px;">Todavía no hay eventos clínicos registrados.</p>';
+        return;
+      }
+
+      list.innerHTML = eventos.map(ev => {
+        let detalleTexto = '';
+        if (ev.tipo === 'vacuna' && ev.detalleVacuna) {
+          detalleTexto = `${escapeHtml(ev.detalleVacuna.nombreVacuna)}${ev.detalleVacuna.proximaDosis ? ' · próxima dosis: ' + ev.detalleVacuna.proximaDosis : ''}`;
+        } else if (ev.tipo === 'cirugia' && ev.detalleCirugia) {
+          detalleTexto = escapeHtml(ev.detalleCirugia.procedimiento) + (ev.detalleCirugia.complicaciones ? ` — ${escapeHtml(ev.detalleCirugia.complicaciones)}` : '');
+        } else if (ev.tipo === 'tratamiento' && ev.detalleTratamiento) {
+          detalleTexto = `${escapeHtml(ev.detalleTratamiento.medicamento)}${ev.detalleTratamiento.dosis ? ' · ' + escapeHtml(ev.detalleTratamiento.dosis) : ''}${ev.detalleTratamiento.duracionDias ? ` · ${ev.detalleTratamiento.duracionDias} días` : ''}`;
+        }
+        return `
+          <div class="evento-item">
+            <span class="evento-fecha">${ev.fecha}</span>
+            <span class="evento-tipo">${TIPO_LABEL[ev.tipo] || ev.tipo}</span>
+            <div class="evento-detalle">${detalleTexto}</div>
+            ${ev.notas ? `<div class="evento-notas">${escapeHtml(ev.notas)}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      list.innerHTML = '<p style="color: var(--text-muted); font-size: 14px;">No se pudo cargar la historia clínica.</p>';
+    }
+  }
+
+  // Mostrar el formulario de alta solo si hay sesión de staff
+  if (getToken()) {
+    document.getElementById('admin-box').style.display = 'block';
+  }
+
+  document.getElementById('ev-tipo').addEventListener('change', (e) => {
+    document.querySelectorAll('.campo-tipo').forEach(el => el.classList.remove('activo'));
+    document.getElementById(`campo-${e.target.value}`).classList.add('activo');
+  });
+
+  document.getElementById('evento-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('ev-error');
+    errEl.style.display = 'none';
+
+    const tipo = document.getElementById('ev-tipo').value;
+    const fecha = document.getElementById('ev-fecha').value;
+    if (!fecha) {
+      errEl.textContent = 'La fecha es obligatoria.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    let detalle = {};
+    if (tipo === 'vacuna') {
+      detalle = {
+        nombreVacuna: document.getElementById('ev-nombreVacuna').value.trim(),
+        proximaDosis: document.getElementById('ev-proximaDosis').value || null,
+      };
+    } else if (tipo === 'cirugia') {
+      detalle = {
+        procedimiento: document.getElementById('ev-procedimiento').value.trim(),
+        complicaciones: document.getElementById('ev-complicaciones').value.trim() || null,
+      };
+    } else if (tipo === 'tratamiento') {
+      detalle = {
+        medicamento: document.getElementById('ev-medicamento').value.trim(),
+        dosis: document.getElementById('ev-dosis').value.trim() || null,
+        duracionDias: document.getElementById('ev-duracionDias').value || null,
+      };
+    }
+
+    const btn = document.getElementById('ev-submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Registrando…';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/animales/${animalId}/eventos-clinicos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ tipo, fecha, veterinario: document.getElementById('ev-veterinario').value.trim(), notas: document.getElementById('ev-notas').value.trim(), detalle }),
+      });
+      if (!res.ok) throw new Error();
+      document.getElementById('evento-form').reset();
+      cargarEventos();
+    } catch (err) {
+      errEl.textContent = 'No se pudo registrar el evento. Verificá los datos.';
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Registrar evento';
+    }
+  });
+
+  cargarAnimal();
+  cargarEventos();
+</script>
+
+</body>
+</html>

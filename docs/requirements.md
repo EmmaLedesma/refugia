@@ -4,7 +4,7 @@
 
 ### Gestión de animales
 - RF1: Registrar un animal (nombre, especie genérica, edad estimada, fecha de ingreso, descripción)
-- RF2: Registrar y consultar historia clínica estructurada por tipo de evento (vacuna, cirugía, tratamiento)
+- RF2: Registrar y consultar historia clínica estructurada por tipo de evento (vacuna, cirugía, tratamiento) — implementado: `GET/POST /api/animales/:id/eventos-clinicos`, con UI en `ficha.html`
 - RF3: Cambiar estado del animal (disponible / en_tratamiento / en_adopcion / adoptado)
 - RF4: Listar y buscar animales por estado/especie
 - RF10: Gestionar galería de fotos por animal

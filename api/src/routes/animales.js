@@ -11,4 +11,8 @@ router.get('/:id', controller.obtenerPorId);
 router.post('/', requireAuth, controller.crear);
 router.patch('/:id/estado', requireAuth, controller.cambiarEstado);
 
+// RF2: historia clínica
+router.get('/:id/eventos-clinicos', controller.listarEventosClinicos);
+router.post('/:id/eventos-clinicos', requireAuth, controller.crearEventoClinico);
+
 module.exports = router;

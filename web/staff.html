@@ -352,7 +352,7 @@
 
       body.innerHTML = animales.map(a => `
         <tr>
-          <td>${escapeHtml(a.nombre)}</td>
+          <td><a href="ficha.html?id=${a.id}">${escapeHtml(a.nombre)}</a></td>
           <td>${escapeHtml(a.especie)}</td>
           <td><span class="badge badge-pendiente">${escapeHtml(a.estado)}</span></td>
           <td>${a.nivelEnergia ? escapeHtml(a.nivelEnergia) : '—'}</td>

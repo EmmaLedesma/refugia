@@ -99,14 +99,18 @@
 
       grid.innerHTML = animales.map(a => `
         <div class="animal-card">
-          <div class="animal-photo">${ESPECIE_ICONO[a.especie] || '&#128062;'}</div>
-          <div class="animal-body">
-            <div class="animal-name">${escapeHtml(a.nombre)}</div>
-            <div class="animal-meta">${escapeHtml(a.especie)}${a.edadEstimada ? ' · ' + escapeHtml(a.edadEstimada) : ''}</div>
-            <div class="animal-tags">
-              ${a.nivelEnergia ? `<span class="tag">Energía ${escapeHtml(a.nivelEnergia)}</span>` : ''}
-              ${a.tamaño ? `<span class="tag">${escapeHtml(a.tamaño)}</span>` : ''}
+          <a href="ficha.html?id=${a.id}" style="text-decoration:none; color:inherit;">
+            <div class="animal-photo">${ESPECIE_ICONO[a.especie] || '&#128062;'}</div>
+            <div class="animal-body" style="padding-bottom: 0;">
+              <div class="animal-name">${escapeHtml(a.nombre)}</div>
+              <div class="animal-meta">${escapeHtml(a.especie)}${a.edadEstimada ? ' · ' + escapeHtml(a.edadEstimada) : ''}</div>
+              <div class="animal-tags">
+                ${a.nivelEnergia ? `<span class="tag">Energía ${escapeHtml(a.nivelEnergia)}</span>` : ''}
+                ${a.tamaño ? `<span class="tag">${escapeHtml(a.tamaño)}</span>` : ''}
+              </div>
             </div>
+          </a>
+          <div class="animal-body" style="padding-top: 0;">
             <a class="animal-cta" href="postular.html?animalId=${a.id}">Quiero adoptar a ${escapeHtml(a.nombre)}</a>
           </div>
         </div>
