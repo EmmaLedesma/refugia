@@ -264,6 +264,71 @@ resource "aws_cloudfront_distribution" "main" {
   }
 }
 
+# --- CI/CD: GitHub Actions vía OIDC (sin credenciales de larga duración) ---
+# El OIDC provider es un recurso por cuenta de AWS, no por proyecto — ya existe
+# (creado para Shem72). Lo referenciamos de solo lectura, sin gestionarlo acá,
+# para no arriesgar que un destroy de Refugia se lleve puesto un recurso compartido.
+data "aws_iam_openid_connect_provider" "github" {
+  url = "https://token.actions.githubusercontent.com"
+}
+
+resource "aws_iam_role" "github_actions" {
+  name = "${local.name_prefix}-github-actions"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Federated = data.aws_iam_openid_connect_provider.github.arn }
+      Action    = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = { "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com" }
+        # Acotado a pushes a main del repo refugia — ni otros repos ni otras ramas pueden asumir este rol
+        StringLike = { "token.actions.githubusercontent.com:sub" = "repo:EmmaLedesma/refugia:ref:refs/heads/main" }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "github_actions_deploy" {
+  name = "${local.name_prefix}-github-actions-deploy"
+  role = aws_iam_role.github_actions.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "S3DeployArtifacts"
+        Effect   = "Allow"
+        Action   = ["s3:PutObject", "s3:GetObject"]
+        Resource = "${aws_s3_bucket.fotos.arn}/deploys/*"
+      },
+      {
+        Sid      = "S3FrontendSync"
+        Effect   = "Allow"
+        Action   = ["s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
+        Resource = [aws_s3_bucket.frontend.arn, "${aws_s3_bucket.frontend.arn}/*"]
+      },
+      {
+        Sid    = "ElasticBeanstalkDeploy"
+        Effect = "Allow"
+        Action = [
+          "elasticbeanstalk:CreateApplicationVersion", "elasticbeanstalk:UpdateEnvironment",
+          "elasticbeanstalk:DescribeEnvironments", "elasticbeanstalk:DescribeApplicationVersions",
+          "elasticbeanstalk:DescribeEvents",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid      = "CloudFrontInvalidate"
+        Effect   = "Allow"
+        Action   = ["cloudfront:CreateInvalidation"]
+        Resource = aws_cloudfront_distribution.main.arn
+      },
+    ]
+  })
+}
+
 # --- Elastic Beanstalk (API) — ver docs/adr/0001-hosting-api.md ---
 resource "aws_elastic_beanstalk_application" "api" {
   name        = local.name_prefix

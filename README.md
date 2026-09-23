@@ -35,7 +35,7 @@ Proyecto académico (materia *Administración de Negocios Digitales*) y proyecto
 | Endpoints `adoptantes` / `postulaciones` | ✅ Funcional — validado con datos ricos y scores diferenciados |
 | Frontend (`web/`) | ✅ Home pública, formulario de postulación y panel del staff — HTML/CSS/JS plano, sin build tooling, consumiendo la API real |
 | HTTPS + hosting del frontend | ✅ CloudFront (S3 + API bajo `/api`) — ver [ADR-0005](docs/adr/0005-https-y-hosting-frontend.md) |
-| CI/CD | ⬜ Pendiente — deploy manual por ahora |
+| CI/CD | ✅ GitHub Actions vía OIDC — push a `main` despliega API y/o frontend automáticamente — ver [ADR-0006](docs/adr/0006-cicd-github-actions.md) |
 
 Demo funcional (frontend + API, todo HTTPS): **https://d1jgrigc19zcfs.cloudfront.net**
 
@@ -45,8 +45,7 @@ Demo funcional (frontend + API, todo HTTPS): **https://d1jgrigc19zcfs.cloudfront
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Cliente (futuro frontend /                │
-│                     Postman / curl por ahora)                │
+│              Frontend (S3 + CloudFront) / Postman            │
 └─────────────────────────┬───────────────────────────────────┘
                           │ HTTPS
                           ▼
