@@ -283,8 +283,10 @@ resource "aws_iam_role" "github_actions" {
       Action    = "sts:AssumeRoleWithWebIdentity"
       Condition = {
         StringEquals = { "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com" }
-        # Acotado a pushes a main del repo refugia — ni otros repos ni otras ramas pueden asumir este rol
-        StringLike = { "token.actions.githubusercontent.com:sub" = "repo:EmmaLedesma/refugia:ref:refs/heads/main" }
+        # Acotado a pushes a main del repo refugia — ni otros repos ni otras ramas pueden asumir este rol.
+        # Formato real confirmado por debug: incluye los IDs inmutables de usuario y repo (187816237 / 1374778441),
+        # no solo los nombres — GitHub los agrega para que el trust sobreviva a un rename de usuario/repo.
+        StringLike = { "token.actions.githubusercontent.com:sub" = "repo:EmmaLedesma@187816237/refugia@1374778441:ref:refs/heads/main" }
       }
     }]
   })
