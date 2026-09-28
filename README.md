@@ -33,7 +33,8 @@ Proyecto académico (materia *Administración de Negocios Digitales*) y proyecto
 | Login (JWT) | ✅ Funcional — usuario único de staff (ver ADR-0002) |
 | Endpoint `animales` (RF1, RF3, RF4, RF9) | ✅ Funcional — probado end-to-end en producción |
 | Endpoints `adoptantes` / `postulaciones` | ✅ Funcional — validado con datos ricos y scores diferenciados |
-| Frontend (`web/`) | ✅ Home pública, formulario de postulación y panel del staff — HTML/CSS/JS plano, sin build tooling, consumiendo la API real |
+| Frontend (`web/`) | ✅ Home pública, formulario de postulación, ficha con historia clínica y galería de fotos, panel del staff |
+| Fotos (RF10) | ✅ Upload real vía URLs presignadas de S3 (navegador → S3 directo) — ver [ADR-0007](docs/adr/0007-upload-fotos-s3-presigned.md) |
 | HTTPS + hosting del frontend | ✅ CloudFront (S3 + API bajo `/api`) — ver [ADR-0005](docs/adr/0005-https-y-hosting-frontend.md) |
 | CI/CD | ✅ GitHub Actions vía OIDC — push a `main` despliega API y/o frontend automáticamente — ver [ADR-0006](docs/adr/0006-cicd-github-actions.md) |
 

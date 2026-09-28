@@ -141,4 +141,70 @@ async function crearEventoClinico(req, res) {
   }
 }
 
-module.exports = { listar, crear, obtenerPorId, cambiarEstado, listarEventosClinicos, crearEventoClinico };
+const { PutObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const s3 = require('../config/s3');
+
+const TIPOS_PERMITIDOS = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+const TAMAÑO_MAX_BYTES = 5 * 1024 * 1024; // 5 MB — validado del lado del cliente antes de pedir la URL (ver limitación en ADR-0007)
+
+// RF10 (paso 1): generar una URL presignada — el navegador sube el archivo directo a S3, nunca pasa por este servidor
+async function presignFoto(req, res) {
+  try {
+    const { contentType, tamaño } = req.body;
+    const extension = TIPOS_PERMITIDOS[contentType];
+    if (!extension) {
+      return res.status(400).json({ error: `Tipo de imagen no permitido. Usá: ${Object.keys(TIPOS_PERMITIDOS).join(', ')}` });
+    }
+    if (tamaño && tamaño > TAMAÑO_MAX_BYTES) {
+      return res.status(400).json({ error: `La imagen supera el máximo de ${TAMAÑO_MAX_BYTES / 1024 / 1024}MB` });
+    }
+
+    const animal = await Animal.findByPk(req.params.id);
+    if (!animal) return res.status(404).json({ error: 'Animal no encontrado' });
+
+    const key = `animales/${animal.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
+
+    const comando = new PutObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET,
+      Key: key,
+      ContentType: contentType,
+    });
+    const uploadUrl = await getSignedUrl(s3, comando, { expiresIn: 300 }); // 5 minutos para completar el upload
+
+    const publicUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'sa-east-1'}.amazonaws.com/${key}`;
+
+    res.json({ uploadUrl, publicUrl, key });
+  } catch (err) {
+    res.status(500).json({ error: 'No se pudo generar la URL de subida', detalle: err.message });
+  }
+}
+
+// RF10 (paso 2): una vez que el navegador subió el archivo a S3 con éxito, guardar el registro en la base
+async function agregarFoto(req, res) {
+  try {
+    const { url, esPrincipal } = req.body;
+    if (!url) return res.status(400).json({ error: 'url es requerida' });
+
+    const animal = await Animal.findByPk(req.params.id);
+    if (!animal) return res.status(404).json({ error: 'Animal no encontrado' });
+
+    if (esPrincipal) {
+      await Foto.update({ esPrincipal: false }, { where: { animalId: animal.id } });
+    }
+
+    const cantidadActual = await Foto.count({ where: { animalId: animal.id } });
+    const foto = await Foto.create({
+      animalId: animal.id,
+      url,
+      esPrincipal: !!esPrincipal || cantidadActual === 0, // la primera foto es principal por defecto
+      orden: cantidadActual,
+    });
+
+    res.status(201).json(foto);
+  } catch (err) {
+    res.status(400).json({ error: 'No se pudo agregar la foto', detalle: err.message });
+  }
+}
+
+module.exports = { listar, crear, obtenerPorId, cambiarEstado, listarEventosClinicos, crearEventoClinico, presignFoto, agregarFoto };

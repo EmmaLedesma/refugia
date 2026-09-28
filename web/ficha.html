@@ -18,6 +18,10 @@
   .admin-box summary { cursor: pointer; font-weight: 700; color: var(--teal-dark); font-size: 14px; }
   .campo-tipo { display: none; }
   .campo-tipo.activo { display: block; }
+  .galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .galeria img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; border: 1px solid var(--border); }
+  .galeria-vacia { color: var(--text-muted); font-size: 13.5px; margin-bottom: 16px; }
+  .upload-progreso { font-size: 13px; color: var(--teal-dark); margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -44,9 +48,16 @@
 <div class="container-narrow" style="padding-top: 28px; padding-bottom: 48px;">
 
   <div class="card" style="margin-bottom: 24px;">
+    <div id="galeria" class="galeria"></div>
     <div class="animal-tags" id="animal-tags"></div>
     <p id="animal-descripcion" style="color: var(--text-muted); font-size: 14.5px; margin-top: 10px;"></p>
     <a href="#" id="adoptar-btn" class="btn btn-amber btn-block" style="margin-top: 16px;">Quiero adoptar</a>
+
+    <div id="upload-box" style="display:none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+      <label for="foto-input">Agregar foto (staff)</label>
+      <input type="file" id="foto-input" accept="image/jpeg,image/png,image/webp">
+      <div class="upload-progreso" id="upload-progreso"></div>
+    </div>
   </div>
 
   <h2 class="section-title-sm">Historia clínica</h2>
@@ -163,6 +174,7 @@
       document.getElementById('animal-title').textContent = animal.nombre;
       document.getElementById('animal-descripcion').textContent = animal.descripcion || 'Sin descripción adicional.';
       document.getElementById('adoptar-btn').href = `postular.html?animalId=${animal.id}`;
+      renderGaleria(animal.fotos || []);
 
       const tags = [];
       if (animal.edadEstimada) tags.push(`<span class="tag">${escapeHtml(animal.edadEstimada)}</span>`);
@@ -272,6 +284,74 @@
     } finally {
       btn.disabled = false;
       btn.textContent = 'Registrar evento';
+    }
+  });
+
+  function renderGaleria(fotos) {
+    const galeria = document.getElementById('galeria');
+    const ordenadas = [...fotos].sort((a, b) => (b.esPrincipal ? 1 : 0) - (a.esPrincipal ? 1 : 0) || a.orden - b.orden);
+    if (!ordenadas.length) {
+      galeria.innerHTML = '<p class="galeria-vacia">Todavía no hay fotos cargadas.</p>';
+      return;
+    }
+    galeria.innerHTML = ordenadas.map(f => `<img src="${escapeHtml(f.url)}" alt="Foto" loading="lazy">`).join('');
+  }
+
+  // Mostrar el box de upload solo si hay sesión de staff
+  if (getToken()) {
+    document.getElementById('upload-box').style.display = 'block';
+  }
+
+  const TIPOS_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp'];
+  const TAMAÑO_MAX = 5 * 1024 * 1024;
+
+  document.getElementById('foto-input')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const progreso = document.getElementById('upload-progreso');
+
+    if (!TIPOS_PERMITIDOS.includes(file.type)) {
+      progreso.textContent = 'Formato no permitido. Usá JPG, PNG o WebP.';
+      return;
+    }
+    if (file.size > TAMAÑO_MAX) {
+      progreso.textContent = 'La imagen supera 5MB.';
+      return;
+    }
+
+    try {
+      progreso.textContent = 'Solicitando permiso de subida…';
+      const presignRes = await fetch(`${API_BASE}/api/animales/${animalId}/fotos/presign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ contentType: file.type, tamaño: file.size }),
+      });
+      if (!presignRes.ok) throw new Error('presign');
+      const { uploadUrl, publicUrl } = await presignRes.json();
+
+      progreso.textContent = 'Subiendo imagen…';
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      if (!uploadRes.ok) throw new Error('upload');
+
+      progreso.textContent = 'Guardando…';
+      const confirmRes = await fetch(`${API_BASE}/api/animales/${animalId}/fotos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ url: publicUrl }),
+      });
+      if (!confirmRes.ok) throw new Error('confirm');
+
+      progreso.textContent = 'Foto agregada ✓';
+      cargarAnimal();
+      setTimeout(() => { progreso.textContent = ''; }, 2000);
+    } catch (err) {
+      progreso.textContent = 'No se pudo subir la foto. Intentá de nuevo.';
+    } finally {
+      e.target.value = '';
     }
   });
 

@@ -43,6 +43,18 @@ resource "aws_s3_bucket_policy" "fotos_lectura_publica" {
   depends_on = [aws_s3_bucket_public_access_block.fotos]
 }
 
+# Permite que el navegador suba archivos directo a S3 con la URL presignada (sin esto, el PUT lo bloquea CORS)
+resource "aws_s3_bucket_cors_configuration" "fotos" {
+  bucket = aws_s3_bucket.fotos.id
+
+  cors_rule {
+    allowed_methods = ["PUT"]
+    allowed_origins  = ["*"] # el PUT solo es válido con una URL presignada de corta duración (5 min) generada por la API tras auth — abrir el origen no expone nada adicional
+    allowed_headers  = ["Content-Type"]
+    max_age_seconds  = 3000
+  }
+}
+
 # --- Security Groups ---
 resource "aws_security_group" "rds" {
   name        = "${local.name_prefix}-rds-sg"

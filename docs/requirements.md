@@ -7,7 +7,7 @@
 - RF2: Registrar y consultar historia clínica estructurada por tipo de evento (vacuna, cirugía, tratamiento) — implementado: `GET/POST /api/animales/:id/eventos-clinicos`, con UI en `ficha.html`
 - RF3: Cambiar estado del animal (disponible / en_tratamiento / en_adopcion / adoptado)
 - RF4: Listar y buscar animales por estado/especie
-- RF10: Gestionar galería de fotos por animal
+- RF10: Gestionar galería de fotos por animal — implementado: upload real vía URLs presignadas de S3 (ver [ADR-0007](adr/0007-upload-fotos-s3-presigned.md))
 
 ### Adopción responsable
 - RF5: Cargar cuestionario del adoptante (vivienda, niños, otros animales, tiempo disponible, experiencia previa)
