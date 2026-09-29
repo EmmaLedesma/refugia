@@ -31,7 +31,7 @@ jobs:
 
       - name: Definir version label
         id: version
-        run: echo "label=v-${GITHUB_SHA::8}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+        run: echo "label=v-${GITHUB_SHA::8}-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
 
       - name: Subir el paquete a S3
         run: |
