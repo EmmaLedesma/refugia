@@ -284,6 +284,8 @@ data "aws_iam_openid_connect_provider" "github" {
   url = "https://token.actions.githubusercontent.com"
 }
 
+data "aws_caller_identity" "current" {}
+
 resource "aws_iam_role" "github_actions" {
   name = "${local.name_prefix}-github-actions"
 
@@ -332,6 +334,17 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
           "elasticbeanstalk:DescribeEvents",
         ]
         Resource = "*"
+      },
+      {
+        # EB revisa/asegura su bucket interno de gestión en cada update-environment,
+        # aunque ya exista — sin este permiso, hasta un deploy de rutina falla.
+        Sid    = "ElasticBeanstalkManagedBucket"
+        Effect = "Allow"
+        Action = ["s3:CreateBucket", "s3:GetBucketLocation", "s3:ListBucket", "s3:PutObject", "s3:GetObject"]
+        Resource = [
+          "arn:aws:s3:::elasticbeanstalk-${var.aws_region}-${data.aws_caller_identity.current.account_id}",
+          "arn:aws:s3:::elasticbeanstalk-${var.aws_region}-${data.aws_caller_identity.current.account_id}/*",
+        ]
       },
       {
         Sid      = "CloudFrontInvalidate"
