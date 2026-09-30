@@ -26,3 +26,6 @@ El rol de CI es independiente del usuario `refugia-deploy` que usás localmente 
 - Riesgo reducido: elimina la clase de error "olvidé un paso" o "variable de PowerShell perdida" que ya ocurrió varias veces en el deploy manual
 - Riesgo asumido: si el workflow tiene un bug, se ejecuta automáticamente en cada push — por eso el alcance de permisos del rol es mínimo (no puede tocar RDS, IAM ni SSM)
 - Los comandos manuales documentados en `docs/infrastructure.md` quedan como referencia/fallback, no como el flujo principal
+
+## Actualización — permisos de Elastic Beanstalk
+Armar a mano los permisos exactos que Beanstalk necesita para `update-environment` resultó en 4 rondas de "falta este permiso" (bucket interno de gestión, stack de CloudFormation, `autoscaling:DescribeAutoScalingGroups`, `s3:GetObjectAcl`) — la mecánica interna de EB (autoscaling, CloudFormation, S3, EC2) no está bien documentada permiso por permiso. Se decidió adjuntar la policy administrada `AWSElasticBeanstalkFullAccess` de AWS para esta parte específica, en vez de seguir adivinando — es la que AWS mantiene y ya cubre correctamente todo el ciclo de vida de un entorno. El resto de los permisos (bucket del frontend, invalidación de CloudFront) se mantienen acotados a mano, ya que esos sí están bien definidos y no dependen de mecánica interna de otro servicio.

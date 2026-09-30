@@ -306,6 +306,15 @@ resource "aws_iam_role" "github_actions" {
   })
 }
 
+resource "aws_iam_role_policy_attachment" "github_actions_eb" {
+  # Después de 4 permisos faltantes distintos (S3 bucket interno, CloudFormation,
+  # autoscaling, s3:GetObjectAcl) armando esto a mano, se decidió usar la policy
+  # oficial de AWS para el ciclo de vida de Elastic Beanstalk en vez de seguir
+  # adivinando — es la que AWS mantiene y cubre toda esta mecánica interna.
+  role       = aws_iam_role.github_actions.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkFullAccess"
+}
+
 resource "aws_iam_role_policy" "github_actions_deploy" {
   name = "${local.name_prefix}-github-actions-deploy"
   role = aws_iam_role.github_actions.id
@@ -324,39 +333,6 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
         Effect   = "Allow"
         Action   = ["s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
         Resource = [aws_s3_bucket.frontend.arn, "${aws_s3_bucket.frontend.arn}/*"]
-      },
-      {
-        Sid    = "ElasticBeanstalkDeploy"
-        Effect = "Allow"
-        Action = [
-          "elasticbeanstalk:CreateApplicationVersion", "elasticbeanstalk:UpdateEnvironment",
-          "elasticbeanstalk:DescribeEnvironments", "elasticbeanstalk:DescribeApplicationVersions",
-          "elasticbeanstalk:DescribeEvents",
-        ]
-        Resource = "*"
-      },
-      {
-        # EB revisa/asegura su bucket interno de gestión en cada update-environment,
-        # aunque ya exista — sin este permiso, hasta un deploy de rutina falla.
-        Sid    = "ElasticBeanstalkManagedBucket"
-        Effect = "Allow"
-        Action = ["s3:CreateBucket", "s3:GetBucketLocation", "s3:ListBucket", "s3:PutObject", "s3:GetObject"]
-        Resource = [
-          "arn:aws:s3:::elasticbeanstalk-${var.aws_region}-${data.aws_caller_identity.current.account_id}",
-          "arn:aws:s3:::elasticbeanstalk-${var.aws_region}-${data.aws_caller_identity.current.account_id}/*",
-        ]
-      },
-      {
-        # EB gestiona cada entorno con un stack de CloudFormation interno y necesita leerlo
-        # en cada update-environment. Mismo alcance que usa la policy oficial de AWS
-        # AWSElasticBeanstalkFullAccess para este caso.
-        Sid    = "ElasticBeanstalkManagedStack"
-        Effect = "Allow"
-        Action = "cloudformation:*"
-        Resource = [
-          "arn:aws:cloudformation:${var.aws_region}:${data.aws_caller_identity.current.account_id}:stack/awseb-*/*",
-          "arn:aws:cloudformation:${var.aws_region}:${data.aws_caller_identity.current.account_id}:stack/eb-*/*",
-        ]
       },
       {
         Sid      = "CloudFrontInvalidate"
