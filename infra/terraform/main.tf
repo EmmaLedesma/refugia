@@ -347,6 +347,18 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
         ]
       },
       {
+        # EB gestiona cada entorno con un stack de CloudFormation interno y necesita leerlo
+        # en cada update-environment. Mismo alcance que usa la policy oficial de AWS
+        # AWSElasticBeanstalkFullAccess para este caso.
+        Sid    = "ElasticBeanstalkManagedStack"
+        Effect = "Allow"
+        Action = "cloudformation:*"
+        Resource = [
+          "arn:aws:cloudformation:${var.aws_region}:${data.aws_caller_identity.current.account_id}:stack/awseb-*/*",
+          "arn:aws:cloudformation:${var.aws_region}:${data.aws_caller_identity.current.account_id}:stack/eb-*/*",
+        ]
+      },
+      {
         Sid      = "CloudFrontInvalidate"
         Effect   = "Allow"
         Action   = ["cloudfront:CreateInvalidation"]
