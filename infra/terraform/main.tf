@@ -311,8 +311,9 @@ resource "aws_iam_role_policy_attachment" "github_actions_eb" {
   # autoscaling, s3:GetObjectAcl) armando esto a mano, se decidió usar la policy
   # oficial de AWS para el ciclo de vida de Elastic Beanstalk en vez de seguir
   # adivinando — es la que AWS mantiene y cubre toda esta mecánica interna.
+  # Nota: AWSElasticBeanstalkFullAccess fue deprecada por AWS; el nombre vigente es este.
   role       = aws_iam_role.github_actions.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkFullAccess"
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess-AWSElasticBeanstalk"
 }
 
 resource "aws_iam_role_policy" "github_actions_deploy" {
