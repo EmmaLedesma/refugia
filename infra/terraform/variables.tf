@@ -45,3 +45,9 @@ variable "staff_username" {
   type        = string
   default     = "admin"
 }
+
+variable "admin_cidr" {
+  description = "IP pública propia (formato x.x.x.x/32) con acceso directo a RDS para migraciones locales. Dejar vacío para no permitir ningún acceso admin directo."
+  type        = string
+  default     = ""
+}

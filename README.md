@@ -6,8 +6,8 @@
 [![Terraform](https://img.shields.io/badge/Terraform-1.5+-7B42BC?style=flat-square&logo=terraform&logoColor=white)](https://terraform.io)
 [![Node.js](https://img.shields.io/badge/Node.js-22-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
 [![Express](https://img.shields.io/badge/Express-4-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-RDS-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://aws.amazon.com/rds/postgresql/)
-[![Status](https://img.shields.io/badge/status-en_desarrollo-yellow?style=flat-square)](#-estado-actual)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Status](https://img.shields.io/badge/status-pausado_por_costos-orange?style=flat-square)](#-estado-actual)
 
 🔗 [LinkedIn](https://www.linkedin.com/in/emmanuel-ledesmam) · [GitHub](https://github.com/EmmaLedesma)
 
@@ -15,40 +15,38 @@
 
 ## 📌 Concepto
 
-Un rescatista de un refugio puede fichar un animal, registrar su historia clínica por tipo de evento, y encontrar candidatos de adopción compatibles según un score calculado — sin depender de WhatsApp y planillas de Excel.
+Un rescatista de un refugio puede fichar un animal, registrar su historia clínica por tipo de evento, subir fotos, y encontrar candidatos de adopción compatibles según un score calculado — sin depender de WhatsApp y planillas de Excel.
 
-Proyecto académico (materia *Administración de Negocios Digitales*) y proyecto de portfolio técnico. El foco no es cobertura funcional completa, sino demostrar **criterio de Solution Architecture** sobre un problema de negocio real: cada decisión de arquitectura está documentada como ADR, con alternativas consideradas y trade-offs explícitos.
+Proyecto académico (materia *Administración de Negocios Digitales*, Licenciatura en Tecnologías Digitales — Universidad de la Ciudad de Buenos Aires) y proyecto de portfolio técnico. El foco no es cobertura funcional completa, sino demostrar **criterio de Solution Architecture** sobre un problema de negocio real: cada decisión de arquitectura está documentada como ADR, con alternativas consideradas y trade-offs explícitos — incluidos los errores y lo que costaron.
 
 ---
 
 ## 🚧 Estado actual
 
-**Infraestructura, datos y API: desplegados y funcionando de punta a punta.**
+**⚠️ Infraestructura de AWS pausada temporalmente por control de costos — ver [ADR-0008](docs/adr/0008-pausa-por-costos-rediseno-free-tier.md).** El proyecto llegó a tener infraestructura completa, CI/CD y frontend funcionando en producción real (todo lo documentado abajo estuvo efectivamente desplegado y probado) — ese estado queda como hito cerrado y evidencia técnica. Mientras se resuelve la reactivación, **el proyecto corre 100% local, sin AWS y sin costo** — ver [docs/local-development.md](docs/local-development.md).
 
 | Componente | Estado |
 |---|---|
-| Infraestructura AWS (Terraform) | ✅ 16 recursos creados y corriendo |
-| Base de datos (esquema) | ✅ 8 tablas migradas en RDS real |
-| Deploy del código a Elastic Beanstalk | ✅ Corriendo (`v1`) |
-| Login (JWT) | ✅ Funcional — usuario único de staff (ver ADR-0002) |
-| Endpoint `animales` (RF1, RF3, RF4, RF9) | ✅ Funcional — probado end-to-end en producción |
-| Endpoints `adoptantes` / `postulaciones` | ✅ Funcional — validado con datos ricos y scores diferenciados |
-| Frontend (`web/`) | ✅ Home pública, formulario de postulación, ficha con historia clínica y galería de fotos, panel del staff |
-| Fotos (RF10) | ✅ Upload real vía URLs presignadas de S3 (navegador → S3 directo) — ver [ADR-0007](docs/adr/0007-upload-fotos-s3-presigned.md) |
+| Infraestructura AWS (Terraform) | 🟡 Definida como código, pausada en AWS — ver ADR-0008 |
+| Correr en local (sin AWS) | ✅ Guía completa en [docs/local-development.md](docs/local-development.md) |
+| Base de datos (esquema) | ✅ 8 tablas, migraciones versionadas (`sequelize-cli`) |
+| API (animales, adoptantes, postulaciones, auth, historia clínica, fotos) | ✅ Funcional — probada end-to-end en producción real (mientras estuvo arriba) |
+| Frontend (`web/`) | ✅ Home, ficha con historia clínica y galería, postulación, panel del staff |
+| Fotos (RF10) | ✅ Upload real vía URLs presignadas de S3 — ver [ADR-0007](docs/adr/0007-upload-fotos-s3-presigned.md) (no disponible en modo local) |
 | HTTPS + hosting del frontend | ✅ CloudFront (S3 + API bajo `/api`) — ver [ADR-0005](docs/adr/0005-https-y-hosting-frontend.md) |
-| CI/CD | ✅ GitHub Actions vía OIDC — push a `main` despliega API y/o frontend automáticamente — ver [ADR-0006](docs/adr/0006-cicd-github-actions.md) |
-
-Demo funcional (frontend + API, todo HTTPS): **https://d1jgrigc19zcfs.cloudfront.net**
+| CI/CD | ✅ GitHub Actions vía OIDC — ver [ADR-0006](docs/adr/0006-cicd-github-actions.md) |
+| Hardening de seguridad | ✅ RDS restringido al SG real de Beanstalk, sin `AdministratorAccess` en el usuario de deploy |
+| Control de costos (AWS Budgets) | ⬜ Pendiente — la omisión que causó la pausa, ver ADR-0008 |
 
 ---
 
-## 🏗️ Arquitectura
+## 🏗️ Arquitectura (diseño completo, parcialmente pausado en AWS)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│              Frontend (S3 + CloudFront) / Postman            │
+│              Frontend (S3 + CloudFront) / local              │
 └─────────────────────────┬───────────────────────────────────┘
-                          │ HTTPS
+                          │ HTTPS (AWS) / HTTP (local)
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
 │         AWS Elastic Beanstalk (instancia única)              │
@@ -59,54 +57,54 @@ Demo funcional (frontend + API, todo HTTPS): **https://d1jgrigc19zcfs.cloudfront
            │                          │
            ▼                          ▼
 ┌──────────────────┐      ┌───────────────────────┐
-│   AWS RDS         │      │       AWS S3          │
-│   PostgreSQL       │      │  fotos-animales       │
-│  (8 tablas,        │      │  (galería por animal) │
+│   AWS RDS /       │      │       AWS S3          │
+│   Postgres local  │      │  fotos-animales       │
+│  (8 tablas,        │      │  (solo en AWS)        │
 │   migraciones      │      └───────────────────────┘
 │   versionadas)      │
 └──────────────────┘
            ▲
-           │ credenciales
+           │ credenciales (SSM en AWS, .env en local)
 ┌──────────────────────────────────────────────────┐
 │         AWS SSM Parameter Store                  │
-│    db_password, jwt_secret (SecureString)        │
-└──────────────────┬───────────────────────────────┘
-                   │ leídos vía IAM Role (SystemAssigned)
-                   ▼
-        Instancias EC2 de Elastic Beanstalk
-                   │
-                   ▼
-              AWS CloudWatch (logs y métricas)
+└────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🚀 Recursos AWS provisionados
+## 🚀 Recursos AWS definidos (Terraform — ver estado real en ADR-0008)
 
 | Recurso | Nombre | Definido en |
 |---|---|---|
 | Elastic Beanstalk App + Env | `refugia-dev` / `refugia-dev-env` | `infra/terraform/main.tf` |
 | RDS PostgreSQL | `refugia-dev-db` (db.t3.micro) | `infra/terraform/main.tf` |
-| S3 Bucket | `refugia-dev-fotos-animales` | `infra/terraform/main.tf` |
-| Security Group (RDS) | `refugia-dev-rds-sg` | `infra/terraform/main.tf` |
-| SSM Parameters (SecureString) | `/refugia-dev/db_password`, `/refugia-dev/jwt_secret` | `infra/terraform/main.tf` |
-| IAM Role + Instance Profile | `refugia-dev-eb-instance-role` | `infra/terraform/main.tf` |
-
-**Total: 16 recursos gestionados como código (Terraform)**
+| S3 Buckets | fotos + frontend | `infra/terraform/main.tf` |
+| CloudFront | HTTPS + hosting del frontend | `infra/terraform/main.tf` |
+| Security Groups | RDS (restringido al SG real de Beanstalk) | `infra/terraform/main.tf` |
+| SSM Parameters (SecureString) | `/refugia-dev/*` | `infra/terraform/main.tf` |
+| IAM Roles | instancia de Beanstalk, GitHub Actions (OIDC), usuario de deploy acotado | `infra/terraform/main.tf` |
+| GitHub Actions OIDC | CI/CD sin credenciales guardadas | `infra/terraform/main.tf`, `.github/workflows/` |
 
 ---
 
-## ✅ Features implementadas / ⬜ pendientes
+## ✅ Features implementadas
 
-- ✅ Modelo de datos completo (Animal, Foto, EventoClinico + Vacuna/Cirugía/Tratamiento normalizados, Adoptante, Postulación)
-- ✅ Migraciones versionadas (`sequelize-cli`), corridas contra la base real
-- ✅ Scoring de matching por reglas ponderadas (RF6) — diseñado para evolucionar a ML sin cambiar el modelo de datos (ver [roadmap](docs/roadmap.md))
-- ✅ Infraestructura 100% como código (Terraform), con secretos fuera del repo (SSM)
-- ⬜ Deploy del código a Elastic Beanstalk
-- ⬜ CRUD completo de adoptantes y postulaciones
-- ⬜ Autenticación funcional end-to-end
-- ⬜ CI/CD con GitHub Actions
-- ⬜ Matching por Machine Learning (Fase 2, plus del TP — ver roadmap)
+- Modelo de datos completo (Animal, Foto, EventoClinico + Vacuna/Cirugía/Tratamiento normalizados, Adoptante, Postulación)
+- Migraciones versionadas, seeder con datos ricos (scores reales de matching, no inventados)
+- Historia clínica completa (RF2): alta y consulta de eventos clínicos, UI en la ficha del animal
+- Scoring de matching por reglas ponderadas (RF6), validado con casos de score alto/medio/bajo
+- Fotos con upload real vía S3 presignado (RF10) — solo en AWS
+- Login + panel de staff, CRUD de animales/adoptantes/postulaciones con aceptar/rechazar
+- Frontend de 4 páginas, estética inspirada en Animales BA con identidad propia
+- Infraestructura 100% como código (Terraform), CI/CD con GitHub Actions vía OIDC
+- Hardening de seguridad: RDS solo acepta tráfico del SG real de Beanstalk, sin `AdministratorAccess` en el usuario de deploy
+
+## ⬜ Pendiente
+
+- AWS Budgets con alertas (la omisión que causó la pausa — ver ADR-0008)
+- Rediseño verificado contra límites reales de free tier
+- Matching por Machine Learning (Fase 2, plus del TP — ver [roadmap](docs/roadmap.md))
+- Red de hogares de tránsito, módulo de padrinos/donaciones, multi-refugio
 
 ---
 
@@ -116,22 +114,22 @@ Demo funcional (frontend + API, todo HTTPS): **https://d1jgrigc19zcfs.cloudfront
 |---|---|
 | API | Node.js 22 + Express |
 | ORM | Sequelize (dialecto `postgres`) |
-| Base de datos | AWS RDS PostgreSQL |
-| Storage de fotos | AWS S3 |
+| Base de datos | PostgreSQL (RDS en AWS / Docker en local) |
+| Storage de fotos | AWS S3 (solo en AWS) |
 | Hosting | AWS Elastic Beanstalk (instancia única) |
-| Secretos | AWS SSM Parameter Store |
+| Secretos | AWS SSM Parameter Store (AWS) / `.env` (local) |
 | Auth | JWT propio |
-| Observabilidad | AWS CloudWatch |
 | IaC | Terraform |
-| CI/CD | GitHub Actions (planeado, no implementado aún) |
+| CI/CD | GitHub Actions, OIDC (sin credenciales guardadas) |
 
 ---
 
 ## 🔐 Seguridad
 
-- Secretos (`db_password`, `jwt_secret`) en SSM Parameter Store, nunca en el repo — leídos en runtime vía IAM Role
-- `.env` y `terraform.tfvars` en `.gitignore`
-- **Deuda de seguridad conocida y documentada** (no oculta): el security group de RDS acepta el puerto 5432 desde la VPC por defecto completa, y el usuario IAM de deploy tiene `AdministratorAccess` en vez de permisos acotados — ambas son simplificaciones deliberadas para priorizar velocidad de iteración mientras el proyecto está en desarrollo activo, señaladas en [ADR-0004](docs/adr/0004-costos-infraestructura.md), y planificadas para endurecerse en la recta final, una vez que el MVP tenga interfaz y esté listo para mostrarse.
+- Secretos nunca en el repo (`.env`, `terraform.tfvars` en `.gitignore`; SSM Parameter Store en AWS)
+- RDS restringido al security group real de Beanstalk (no abierto a toda la VPC)
+- Usuario de deploy (`refugia-deploy`) sin `AdministratorAccess` — policies de AWS por servicio + policy propia acotada por nombre de recurso para IAM/SSM
+- **Deuda pendiente, con causa y efecto documentados**: no había AWS Budgets ni alarmas de billing — eso llevó a una factura inesperada y a la pausa actual del proyecto (ver [ADR-0008](docs/adr/0008-pausa-por-costos-rediseno-free-tier.md)). Es la próxima prioridad de seguridad/operación antes de reactivar nada.
 
 ---
 
@@ -142,39 +140,42 @@ refugia/
 ├── README.md
 ├── docs/
 │   ├── requirements.md, data-model.md, roadmap.md, infrastructure.md
-│   └── adr/            # 0001-0004, decisiones documentadas con trade-offs
+│   ├── local-development.md   # correr todo sin AWS
+│   └── adr/            # 0001-0008, decisiones documentadas con trade-offs (incluye errores y su costo)
+├── .github/workflows/   # CI/CD — deploy-api.yml, deploy-frontend.yml
 ├── infra/terraform/     # Toda la infraestructura AWS como código
+├── web/                 # Frontend — HTML/CSS/JS plano, sin build tooling
+│   ├── index.html        # home pública
+│   ├── ficha.html         # ficha del animal — historia clínica, fotos, adopción
+│   ├── postular.html      # cuestionario de adoptante + postulación
+│   ├── staff.html         # login + panel
+│   └── assets/style.css   # estética inspirada en Animales BA
 └── api/
     ├── .sequelizerc
     └── src/
-        ├── config/       # conexión DB, secretos SSM, config sequelize-cli
+        ├── config/       # conexión DB, secretos (SSM o .env), S3
         ├── models/        # Sequelize — 8 entidades
         ├── migrations/    # 8 migraciones versionadas
-        ├── seeders/       # datos de demo (usa el matchingService real, no scores inventados)
+        ├── seeders/       # datos de demo
         ├── controllers/, routes/   # animales, adoptantes, postulaciones, auth
         ├── services/      # matchingService (scoring)
         └── middleware/    # auth (JWT), errorHandler
 ```
 
-`web/` (frontend): HTML/CSS/JS plano, sin build tooling — decisión deliberada para MVP rápido sin agregar complejidad de tooling que el problema no pide todavía.
-- `index.html` — home pública, lista animales disponibles en vivo desde la API
-- `postular.html` — cuestionario de adoptante + postulación, muestra el score calculado
-- `staff.html` — login + panel: alta de animales, postulaciones ordenadas por score con aceptar/rechazar
-- `assets/style.css` — diseño inspirado en la estética institucional de [Animales BA](https://buenosaires.gob.ar/inicio/animales-ba) (navy/teal, cards con acento), con un acento ámbar propio reservado para los momentos de adopción
-
 ---
 
-## ⚡ Quick Start (desarrollo local)
+## ⚡ Quick Start
 
+**Local, sin AWS, costo cero** (recomendado mientras dure la pausa) → ver [docs/local-development.md](docs/local-development.md)
+
+**Contra AWS** (cuando la infraestructura esté reactivada):
 ```bash
 cd api
-cp .env.example .env   # completar credenciales de la RDS real
+cp .env.example .env   # completar credenciales reales
 npm install
-npm run migrate         # aplica el esquema si no está creado
+npm run migrate
 npm run dev
 ```
-
-Frontend: abrir `web/index.html` directo en el navegador (sin servidor ni build) — llama a la API real desplegada en AWS.
 
 ---
 
@@ -189,30 +190,30 @@ Con solo 3 tipos de evento clínico fijos (vacuna, cirugía, tratamiento), la no
 **¿Por qué scoring por reglas y no Machine Learning desde el MVP?**
 Un modelo de ML necesita historial real de adopciones para aprender algo útil — no existe todavía. El modelo de datos ya está diseñado para que un futuro modelo use los mismos atributos como features, sin rediseño. Ver `docs/data-model.md` y `docs/roadmap.md`.
 
-**¿Por qué AWS y no otro proveedor?**
-Ya hay experiencia hands-on previa con AWS (ver [Shem72](https://github.com/EmmaLedesma) en el portfolio), lo que permite iterar rápido sobre servicios ya conocidos (RDS, S3, IAM, Elastic Beanstalk) en vez de invertir tiempo de aprendizaje de plataforma en un proyecto con foco en modelado y arquitectura, no en explorar un proveedor nuevo.
+**¿Por qué se pausó la infraestructura en AWS?**
+Facturación inesperada por no tener AWS Budgets configurado desde el inicio — una omisión real, documentada sin maquillar. Ver [ADR-0008](docs/adr/0008-pausa-por-costos-rediseno-free-tier.md).
 
 ---
 
 ## 🔮 Roadmap
 
-Ver [docs/roadmap.md](docs/roadmap.md) — incluye matching por ML, red de tránsitos, módulo de padrinos/donaciones, multi-refugio.
+Ver [docs/roadmap.md](docs/roadmap.md) — incluye matching por ML, red de tránsitos, módulo de padrinos/donaciones, multi-refugio, y (nuevo) rediseño verificado de costos.
 
 ---
 
 ## 💼 Este proyecto demuestra
 
 **Cloud & Solution Architecture**
-- Decisiones de arquitectura documentadas con alternativas y trade-offs (ADRs), no solo código
+- Decisiones de arquitectura documentadas con alternativas y trade-offs (8 ADRs), incluidos los errores reales y lo que costaron — no una versión pulida después del hecho
 
 **Infrastructure as Code**
-- AWS completo gestionado con Terraform: cómputo, base de datos, storage, secretos, IAM
+- AWS completo gestionado con Terraform: cómputo, base de datos, storage, secretos, IAM, CI/CD vía OIDC
 
-**Modelado de datos**
-- Normalización relacional justificada, migraciones versionadas en vez de sync automático
+**Operación real, no solo diseño**
+- CI/CD depurado con 6 fallos reales resueltos en producción; hardening de seguridad aplicado y verificado; un incidente de costos real, documentado y convertido en rediseño
 
 **Honestidad técnica**
-- Estado del proyecto documentado sin inflar: qué está desplegado, qué falta, qué deuda técnica se aceptó y por qué
+- Estado del proyecto documentado sin inflar, en todo momento — incluido este mismo instante de pausa
 
 ---
 
@@ -233,20 +234,20 @@ Proyecto académico y de portfolio profesional.
 
 ## 📌 Concept
 
-A shelter volunteer can register an animal, log its clinical history by event type, and find adoption candidates ranked by a compatibility score — without relying on WhatsApp and spreadsheets.
+A shelter volunteer can register an animal, log its clinical history, upload photos, and find adoption candidates ranked by a compatibility score — without relying on WhatsApp and spreadsheets.
 
-Academic project (Digital Business Administration course) and technical portfolio project. The focus is not full feature coverage but demonstrating **Solution Architecture judgment** on a real business problem: every architecture decision is documented as an ADR, with alternatives and explicit trade-offs.
+Academic project (Digital Business Administration course, Universidad de la Ciudad de Buenos Aires) and technical portfolio project. The focus is demonstrating **Solution Architecture judgment**, documented with ADRs — including real mistakes and their cost.
 
 ## 🚧 Current status
 
-**Infrastructure and data: deployed and running. API code: not deployed yet.** No live demo yet — the badge gets added once the API is actually serving traffic. See the Spanish section above for the full status table.
+⚠️ **AWS infrastructure temporarily paused due to an unexpected billing cost** (no AWS Budgets had been configured — see ADR-0008). The project previously had full infrastructure, CI/CD and frontend running live in production — that state is preserved as a closed milestone and technical evidence. The project currently runs **fully locally, at zero cost** — see `docs/local-development.md`. See the Spanish section above for the full status table.
 
 ## 💼 This project demonstrates
 
-**Cloud & Solution Architecture** — documented trade-off decisions, not just code
-**Infrastructure as Code** — full AWS stack managed with Terraform
-**Data modeling** — justified relational normalization, versioned migrations
-**Technical honesty** — status reported without inflating: what's deployed, what's pending, what technical debt was accepted and why
+**Cloud & Solution Architecture** — documented trade-off decisions, including real failures and their cost, not a polished-after-the-fact version
+**Infrastructure as Code** — full AWS stack managed with Terraform, CI/CD via OIDC
+**Real operations, not just design** — CI/CD debugged through 6 real production failures, security hardening applied and verified, a real cost incident documented and turned into a redesign
+**Technical honesty** — status reported without inflating, at every point — including this very pause
 
 ---
 

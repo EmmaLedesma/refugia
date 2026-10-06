@@ -173,7 +173,7 @@
 </footer>
 
 <script>
-  const API_BASE = location.protocol === 'file:' ? 'http://refugia-dev-env.eba-f3ywkdbu.sa-east-1.elasticbeanstalk.com' : '';
+  const API_BASE = 'http://localhost:3000'; // Modo local — sin costo en AWS. Cuando la infra esté arriba de nuevo, volver a: location.protocol === 'file:' ? 'https://d1jgrigc19zcfs.cloudfront.net' : ''
 
   function getToken() { return sessionStorage.getItem('refugia_token'); }
   function setToken(t) { sessionStorage.setItem('refugia_token', t); }

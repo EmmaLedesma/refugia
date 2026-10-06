@@ -56,19 +56,40 @@ resource "aws_s3_bucket_cors_configuration" "fotos" {
 }
 
 # --- Security Groups ---
+# Beanstalk gestiona su propio security group automáticamente (creado junto con el
+# entorno, sin que nosotros lo pidamos). En vez de forzarlo a adoptar uno nuestro
+# (lo que falló: sin VPC configurada explícitamente en el entorno, Beanstalk no
+# valida bien un SecurityGroups custom), referenciamos el que ya usa.
+data "aws_security_group" "eb_default" {
+  vpc_id = data.aws_vpc.default.id
+  filter {
+    name   = "group-name"
+    values = ["awseb-*"]
+  }
+}
+
 resource "aws_security_group" "rds" {
-  name        = "${local.name_prefix}-rds-sg"
-  description = "Permite acceso a PostgreSQL desde Elastic Beanstalk y, temporalmente, para administracion"
+  name_prefix = "${local.name_prefix}-rds-sg-"
+  description = "Permite acceso a PostgreSQL solo desde Elastic Beanstalk y, opcionalmente, un IP admin"
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
-    description = "PostgreSQL"
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    # MVP: abierto a nivel de VPC por defecto. Ver riesgo señalado en ADR-0004 —
-    # restringir al security group de Beanstalk antes de una demo pública prolongada.
-    cidr_blocks = ["0.0.0.0/0"]
+    description     = "PostgreSQL desde Elastic Beanstalk"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [data.aws_security_group.eb_default.id]
+  }
+
+  dynamic "ingress" {
+    for_each = var.admin_cidr != "" ? [var.admin_cidr] : []
+    content {
+      description = "PostgreSQL desde IP admin (migraciones locales)"
+      from_port   = 5432
+      to_port     = 5432
+      protocol    = "tcp"
+      cidr_blocks = [ingress.value]
+    }
   }
 
   egress {
@@ -340,6 +361,86 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
         Effect   = "Allow"
         Action   = ["cloudfront:CreateInvalidation"]
         Resource = aws_cloudfront_distribution.main.arn
+      },
+    ]
+  })
+}
+
+# --- Usuario de deploy local (refugia-deploy) — reemplaza AdministratorAccess ---
+# Servicios con mecánica interna compleja (igual que aprendimos con el rol de CI):
+# se usan policies administradas de AWS en vez de armar permisos a mano.
+locals {
+  refugia_deploy_managed_policies = [
+    "arn:aws:iam::aws:policy/AmazonEC2FullAccess",            # VPC, subnets, security groups
+    "arn:aws:iam::aws:policy/AmazonRDSFullAccess",
+    "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+    "arn:aws:iam::aws:policy/CloudFrontFullAccess",
+    "arn:aws:iam::aws:policy/AdministratorAccess-AWSElasticBeanstalk",
+  ]
+}
+
+resource "aws_iam_user_policy_attachment" "refugia_deploy_managed" {
+  for_each   = toset(local.refugia_deploy_managed_policies)
+  user       = "refugia-deploy"
+  policy_arn = each.value
+}
+
+resource "aws_iam_user_policy" "refugia_deploy_scoped" {
+  name = "${local.name_prefix}-deploy-scoped"
+  user = "refugia-deploy"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # IAM sí se acota por nombre de recurso — a diferencia de EB, esto es simple
+        # y evita que este usuario pueda crear/editar roles fuera del proyecto.
+        Sid    = "IAMScopedToProject"
+        Effect = "Allow"
+        Action = [
+          "iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:PassRole", "iam:TagRole",
+          "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy", "iam:ListRolePolicies",
+          "iam:AttachRolePolicy", "iam:DetachRolePolicy", "iam:ListAttachedRolePolicies",
+          "iam:CreateInstanceProfile", "iam:DeleteInstanceProfile", "iam:GetInstanceProfile",
+          "iam:AddRoleToInstanceProfile", "iam:RemoveRoleFromInstanceProfile",
+          "iam:CreatePolicy", "iam:DeletePolicy", "iam:GetPolicy",
+          "iam:CreatePolicyVersion", "iam:DeletePolicyVersion", "iam:ListPolicyVersions",
+          "iam:CreateOpenIDConnectProvider", "iam:GetOpenIDConnectProvider",
+        ]
+        Resource = [
+          "arn:aws:iam::*:role/${local.name_prefix}-*",
+          "arn:aws:iam::*:instance-profile/${local.name_prefix}-*",
+          "arn:aws:iam::*:policy/${local.name_prefix}-*",
+          "arn:aws:iam::*:oidc-provider/token.actions.githubusercontent.com",
+        ]
+      },
+      {
+        Sid      = "SSMScopedToProject"
+        Effect   = "Allow"
+        Action   = "ssm:*"
+        Resource = "arn:aws:ssm:${var.aws_region}:*:parameter/${local.name_prefix}/*"
+      },
+      {
+        # Terraform necesita poder leer la propia configuración IAM de este usuario
+        # para refrescar el estado de las policies ya adjuntadas — sí admite scope por recurso.
+        Sid    = "IAMSelfRead"
+        Effect = "Allow"
+        Action = ["iam:ListAttachedUserPolicies", "iam:GetUserPolicy", "iam:ListUserPolicies", "iam:GetUser"]
+        Resource = "arn:aws:iam::*:user/refugia-deploy"
+      },
+      {
+        # Estas dos son operaciones de "listado de cuenta" — AWS no admite acotarlas
+        # por recurso específico, solo existen como "*".
+        Sid      = "AccountWideReadsSinScopePosible"
+        Effect   = "Allow"
+        Action   = ["iam:ListOpenIDConnectProviders", "ssm:DescribeParameters"]
+        Resource = "*"
+      },
+      {
+        Sid      = "STSIdentity"
+        Effect   = "Allow"
+        Action   = "sts:GetCallerIdentity"
+        Resource = "*"
       },
     ]
   })
